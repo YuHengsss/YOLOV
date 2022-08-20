@@ -1,6 +1,6 @@
 
 
-#YOLOV for video object detection.
+# YOLOV for video object detection.
 
 ## Introduction
 YOLOV is an high perfomance video object detector.  Please refer to our paper on Arxiv for more details.
