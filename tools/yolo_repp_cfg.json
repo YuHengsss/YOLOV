@@ -1,0 +1,12 @@
+{
+	"min_tubelet_score": 1e-3,
+	"add_unmatched": false,
+	"distance_func": "logreg",
+	"clf_thr": 0.7,
+	"clf_mode": "dot",
+	"recoordinate": true,
+	"recoordinate_std": 0.4,
+	"min_pred_score":  1e-3,
+	"appearance_matching": false,
+	"weight_path": "./matching_model_logreg.pckl"
+}
