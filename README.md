@@ -37,7 +37,7 @@ git clone git@github.com:YuHengsss/YOLOV.git
 cd YOLOV
 ```
 
-Create conda env
+Create conda env.
 ```shell
 conda create -n yolov python=3.7
 
@@ -85,9 +85,8 @@ YOLOV/yolox/data/dataset/train_seq.npy
 
 Change the data_dir in exp files to [path to yout datasets] and Download our weights.
 
-Step2. Reproduce our results on VID:
+Step2. Generate predictions and convert them to IMDB style for evaluation.
 
-Generate predictions and convert them to IMDB style
 ```shell
 python tools/val_to_imdb.py -f exps/yolov/yolov_x.py -c path to your weights/yolov_x.pth --fp16 --output_dir ./yolov_x.pickle
 ```
