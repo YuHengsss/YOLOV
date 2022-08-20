@@ -77,12 +77,10 @@ path to yout datasets/ILSVRC2015/
 path to yout datasets/ILSVRC/
 ```
 
-Download our COCO-style annotations and video sequences as follows:
+Download our COCO-style annotations for [training](https://drive.google.com/file/d/1LOSjFnShXOmHef5XIyZRDiHFhLobjfjG/view?usp=sharing) and [video sequences](https://drive.google.com/file/d/1vJs8rLl_2oZOWCMJtk3a9ZJmdNn8cu-G/view?usp=sharing) as put them in these two directories:
 ```shell
-YOLOV/annotations/vid_val10000_coco.json
 YOLOV/annotations/vid_train_coco.json
-YOLOV/yolox/data/train_seq.npy
-YOLOV/yolox/data/val_seq.npy
+YOLOV/yolox/data/dataset/train_seq.npy
 ```
 
 Change the data_dir in exp files to [path to yout datasets] and Download our weights.
