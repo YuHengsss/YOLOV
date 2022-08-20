@@ -124,6 +124,8 @@ tnum indicates testing sequence number.
 
 * [https://github.com/Megvii-BaseDetection/YOLOX](https://github.com/Megvii-BaseDetection/YOLOX)
 * [https://github.com/AlbertoSabater/Robust-and-efficient-post-processing-for-video-object-detection](https://github.com/AlbertoSabater/Robust-and-efficient-post-processing-for-video-object-detection)
+</details>
+
 ## Cite YOLOV
 If YOLOV is helpful for your research, please cite the following paper:
 
