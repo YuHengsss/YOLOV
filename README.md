@@ -33,7 +33,7 @@ This repo is an implementation of PyTorch version YOLOV based on [YOLOX](https:/
 
 Install YOLOV from source.
 ```shell
-git clone -
+git clone git@github.com:YuHengsss/YOLOV.git
 cd YOLOV
 ```
 
