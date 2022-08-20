@@ -5,7 +5,7 @@
 ## Introduction
 YOLOV is an high perfomance video object detector.  Please refer to our paper on Arxiv for more details.
 
-This repo is an implementation of PyTorch version YOLOV based on [YOLOX] (https://github.com/Megvii-BaseDetection/YOLOX).
+This repo is an implementation of PyTorch version YOLOV based on [YOLOX](https://github.com/Megvii-BaseDetection/YOLOX).
 
 <img src="assets/comparsion.jpg" width="500" >
 
