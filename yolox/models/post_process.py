@@ -62,6 +62,53 @@ def postprocess(prediction, num_classes, fc_outputs, conf_thre=0.001, nms_thre=0
     return output, output_ori
 
 
+def postprocess_pure(prediction, num_classes, fc_outputs, conf_thre=0.001, nms_thre=0.5):
+    output = [None for _ in range(len(prediction))]
+    output_ori = [None for _ in range(len(prediction))]
+    prediction_ori = copy.deepcopy(prediction)
+    cls_conf, cls_pred = torch.max(fc_outputs, -1, keepdim=False)
+
+    for i, detections in enumerate(prediction):
+
+        if not detections.size(0):
+            continue
+
+        detections[:, 5] = cls_conf[i].sigmoid()
+        detections[:, 6] = cls_pred[i]
+        tmp_cls_score = fc_outputs[i].sigmoid()
+        cls_mask = tmp_cls_score >= conf_thre
+        cls_loc = torch.where(cls_mask)
+        scores = torch.gather(tmp_cls_score[cls_loc[0]],dim=-1,index=cls_loc[1].unsqueeze(1))#[:,cls_loc[1]]#tmp_cls_score[torch.stack(cls_loc).T]#torch.gather(tmp_cls_score, dim=1, index=torch.stack(cls_loc).T)
+
+        detections[:, -num_classes:] = tmp_cls_score
+        detections_raw = detections[:, :7]
+        new_detetions = detections_raw[cls_loc[0]]
+        new_detetions[:, -1] = cls_loc[1]
+        new_detetions[:,5] = scores.squeeze()
+        detections_high = new_detetions  # new_detetions
+        detections_ori = prediction_ori[i]
+        #print(len(detections_high.shape))
+
+        conf_mask = (detections_high[:, 4] * detections_high[:, 5] >= conf_thre).squeeze()
+        detections_high = detections_high[conf_mask]
+
+        if not detections_high.shape[0]:
+            continue
+        if len(detections_high.shape)==3:
+            detections_high = detections_high[0]
+        nms_out_index = torchvision.ops.batched_nms(
+            detections_high[:, :4],
+            detections_high[:, 4] * detections_high[:, 5],
+            detections_high[:, 6],
+            nms_thre,
+        )
+
+        detections_high = detections_high[nms_out_index]
+        output[i] = detections_high
+
+
+    return output
+
 
 def visual_sim(attn,imgs,simN,predictions,cos_sim):
     sort_res = torch.sort(attn,descending=True)

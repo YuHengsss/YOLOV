@@ -15,9 +15,10 @@ from yolox.data.data_augment import ValTransform
 from yolox.data.datasets import COCO_CLASSES
 from yolox.data.datasets.vid_classes import VID_classes
 from yolox.exp import get_exp
-from yolox.utils import fuse_model, get_model_info, postprocess, vis,time_synchronized
+from yolox.utils import fuse_model, get_model_info, postprocess, vis, time_synchronized
 import random
 from yolox.models.post_process import online_previous_selection
+
 IMAGE_EXT = [".jpg", ".jpeg", ".webp", ".bmp", ".png"]
 
 
@@ -34,8 +35,6 @@ def make_parser():
     )
 
     parser.add_argument("--camid", type=int, default=0, help="webcam demo camera id")
-    parser.add_argument('--save_result', default=True)
-
     # exp file
     parser.add_argument(
         "-f",
@@ -54,8 +53,8 @@ def make_parser():
     parser.add_argument(
         "--dataset",
         default='vid',
-        type = str,
-        help = "Decide pred classes"
+        type=str,
+        help="Decide pred classes"
     )
     parser.add_argument("--conf", default=0.1, type=float, help="test conf")
     parser.add_argument("--nms", default=0.5, type=float, help="test nms threshold")
@@ -109,14 +108,14 @@ def get_image_list(path):
 
 class Predictor(object):
     def __init__(
-        self,
-        model,
-        exp,
-        cls_names=COCO_CLASSES,
-        trt_file=None,
-        decoder=None,
-        device="cpu",
-        legacy=False,
+            self,
+            model,
+            exp,
+            cls_names=COCO_CLASSES,
+            trt_file=None,
+            decoder=None,
+            device="cpu",
+            legacy=False,
     ):
         self.model = model.half()
         self.cls_names = cls_names
@@ -137,13 +136,12 @@ class Predictor(object):
 
         with torch.no_grad():
             stime = time.time()
-            outputs, res_dic = self.model(img, other_result)
+            outputs, res_dic = self.model(img, other_result, nms_thresh=self.nmsthre)
             infer_end = time_synchronized()
-            print('infer time:',infer_end-stime)
+            print('infer time:', infer_end - stime)
         return outputs, res_dic
 
-    def visual(self, output,img,ratio, cls_conf=0.0):
-
+    def visual(self, output, img, ratio, cls_conf=0.0):
         if output is None:
             return img
         bboxes = output[:, 0:4]
@@ -165,7 +163,7 @@ def image_demo(predictor, vis_folder, path, current_time, save_result):
         files = [path]
     files.sort()
     for image_name in files:
-        outputs, img_info = predictor.inference(image_name,[image_name])
+        outputs, img_info = predictor.inference(image_name, [image_name])
         result_image = predictor.visual(outputs[0], img_info, predictor.confthre)
         if save_result:
             save_folder = os.path.join(
@@ -178,7 +176,6 @@ def image_demo(predictor, vis_folder, path, current_time, save_result):
         ch = cv2.waitKey(0)
         if ch == 27 or ch == ord("q") or ch == ord("Q"):
             break
-
 
 
 def imageflow_demo(predictor, vis_folder, current_time, args):
@@ -215,8 +212,8 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
     frame_len = len(frames)
     index_list = list(range(frame_len))
     tmp_bank = [[], [], [], []]
-    local_bank = [[],[],[],[]]
-    for frame_num,frame in enumerate(frames):
+    local_bank = [[], [], [], []]
+    for frame_num, frame in enumerate(frames):
         tmp_imgs = []
 
         img = frame
@@ -224,9 +221,9 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
         # if frame_num == 0:
         #     tmp_imgs = tmp_imgs + frames[-31:]
         imgs = torch.stack(tmp_imgs)
-        other_result = online_previous_selection(tmp_bank,local_bank=local_bank,local=True)
+        other_result = online_previous_selection(tmp_bank, local_bank=local_bank, local=True)
         pred_result, res_dict = predictor.inference(imgs, other_result)
-        N = int(res_dict['cls_scores'].shape[0]/len(tmp_imgs))
+        N = int(res_dict['cls_scores'].shape[0] / len(tmp_imgs))
         for i in range(len(tmp_imgs)):
             tmp_bank[0].append(res_dict['cls_feature'][0, N * i:N * (i + 1)])
             tmp_bank[1].append(res_dict['reg_feature'][0, N * i:N * (i + 1)])
@@ -242,16 +239,12 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
             local_bank[i] = local_bank[i][-600:]
         outputs.extend(pred_result)
 
-    for ele in res:
-        if ele == []: continue
-        ele = torch.stack(ele)
-        t0 = time.time()
-        outputs.extend(predictor.inference(ele))
-    for output,img in zip(outputs,ori_frames[:len(outputs)]):
+    for output, img in zip(outputs, ori_frames[:len(outputs)]):
 
-        result_frame = predictor.visual(output,img,ratio,cls_conf=0.1)
+        result_frame = predictor.visual(output, img, ratio, cls_conf=args.conf)
         if args.save_result:
             vid_writer.write(result_frame)
+
 
 def main(exp, args):
     if not args.experiment_name:
@@ -311,7 +304,7 @@ def main(exp, args):
     else:
         trt_file = None
         decoder = None
-    if args.dataset=='vid':
+    if args.dataset == 'vid':
         predictor = Predictor(model, exp, VID_classes, trt_file, decoder, args.device, args.legacy)
     else:
         predictor = Predictor(model, exp, COCO_CLASSES, trt_file, decoder, args.device, args.legacy)

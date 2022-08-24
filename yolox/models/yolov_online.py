@@ -4,6 +4,7 @@
 
 import torch.nn as nn
 
+
 class YOLOX(nn.Module):
     """
     YOLOX model module. The module list is defined by create_yolov3_modules function.
@@ -16,11 +17,10 @@ class YOLOX(nn.Module):
         self.backbone = backbone
         self.head = head
 
-    def forward(self, x, other_result=[],targets=None,thresh=0.1, ):
+    def forward(self, x, other_result=[], targets=None, nms_thresh=0.5, ):
         # fpn output content features of [dark3, dark4, dark5]
         fpn_outs = self.backbone(x)
 
-
-        outputs = self.head(fpn_outs,other_result=other_result)
+        outputs = self.head(fpn_outs, other_result=other_result, nms_thresh=nms_thresh)
 
         return outputs
