@@ -63,7 +63,11 @@ Step2. Run demos. For example:
 ```shell
 python tools/vid_demo.py -f [path to your exp files] -c [path to your weights] --path /path/to/your/video --conf 0.25 --nms 0.5 --tsize 576 --save_result 
 ```
+For online mode, you can run:
 
+```shell
+python tools/yolov_demo_online.py -f ./exp/yolov/yolov_l_online.py -c [path to your weights] --path /path/to/your/video --conf 0.25 --nms 0.5 --tsize 576 --save_result 
+```
 
 </details>
 
