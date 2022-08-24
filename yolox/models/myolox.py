@@ -16,7 +16,7 @@ class YOLOX(nn.Module):
         self.backbone = backbone
         self.head = head
 
-    def forward(self, x, targets=None,thresh=0.1):
+    def forward(self, x, targets=None,nms_thresh=0.5):
         # fpn output content features of [dark3, dark4, dark5]
         fpn_outs = self.backbone(x)
         if self.training:
@@ -34,6 +34,6 @@ class YOLOX(nn.Module):
             }
         else:
 
-            outputs = self.head(fpn_outs,targets,x,thresh=thresh)
+            outputs = self.head(fpn_outs,targets,x,nms_thresh=nms_thresh)
 
         return outputs

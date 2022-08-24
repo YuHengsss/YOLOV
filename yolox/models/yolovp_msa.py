@@ -189,7 +189,7 @@ class YOLOXHead(nn.Module):
             b.data.fill_(-math.log((1 - prior_prob) / prior_prob))
             conv.bias = torch.nn.Parameter(b.view(-1), requires_grad=True)
 
-    def forward(self, xin, labels=None, imgs=None, thresh=0.1):
+    def forward(self, xin, labels=None, imgs=None, nms_thresh=0.5):
         outputs = []
         outputs_decode = []
         origin_preds = []
@@ -302,7 +302,7 @@ class YOLOXHead(nn.Module):
         else:
 
             class_conf, class_pred = torch.max(fc_output, -1, keepdim=False)  #
-            result, result_ori = postprocess(copy.deepcopy(pred_result), self.num_classes, fc_output, )
+            result, result_ori = postprocess(copy.deepcopy(pred_result), self.num_classes, fc_output,nms_thre=nms_thresh )
 
             return result, result_ori  # result
 

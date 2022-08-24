@@ -34,7 +34,6 @@ def make_parser():
     )
 
     parser.add_argument("--camid", type=int, default=0, help="webcam demo camera id")
-    parser.add_argument('--save_result', default=True)
 
     # exp file
     parser.add_argument(
@@ -135,7 +134,7 @@ class Predictor(object):
             img = img.type(tensor_type)
         with torch.no_grad():
             t0 = time.time()
-            outputs,outputs_ori = self.model(img)
+            outputs,outputs_ori = self.model(img,nms_thresh = self.nmsthre)
             logger.info("Infer time: {:.4f}s".format(time.time() - t0))
         return outputs
 
