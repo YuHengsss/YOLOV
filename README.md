@@ -108,7 +108,7 @@ python tools/REPPM.py --repp_cfg ./tools/yolo_repp_cfg.json --predictions_file .
   
 **Training example**
 ```shell
-python tools/vid_train.py -f exps/yolov/yolov_s.py -c weights/yolox_vid.pth --fp16
+python tools/vid_train.py -f exps/yolov/yolov_s.py -c weights/yoloxs_vid.pth --fp16
 ```
 **Roughly testing**
 ```shell
