@@ -40,25 +40,15 @@ def make_parser():
     parser.add_argument(
         "-f",
         "--exp_file",
-        default='./exps/example/custom/yolovx_thresh_2head.py',
+        default='',
         type=str,
         help="plz input your expriment description file",
     )
     parser.add_argument(
         "--resume", default=False, action="store_true", help="resume training"
     )
-    parser.add_argument("-c", "--ckpt", default='./weights/833.pth', type=str, help="checkpoint file")
-    parser.add_argument(
-        '-data_dir',
-        default='media/tuf/ssd',
-        type=str,
-        help="path to your dataset",
-    )
-    parser.add_argument(
-        '-mode',
-        default='random',
-        type=str,
-    )
+    parser.add_argument("-c", "--ckpt", default='', type=str, help="checkpoint file")
+
     parser.add_argument(
         "-e",
         "--start_epoch",
@@ -105,20 +95,6 @@ def make_parser():
 
     return parser
 
-def judge_user(args):
-    now_path = os.getcwd()
-    print(now_path)
-    if 'tuf' in now_path:
-        args.data_dir = '/media/tuf/ssd/'
-    elif 'hdr' in now_path:
-        args.data_dir = '/media/ssd/'
-    elif 'xteam' in now_path:
-        args.data_dir = '/opt/dataset/'
-    else:
-        print('unknown host, exit')
-        exit(0)
-    return args
-
 @logger.catch
 def main(exp, args):
     if exp.seed is not None:
@@ -145,19 +121,10 @@ def main(exp, args):
     trainer.train()
 
 
-    # gframe = 32
-    # args.resume = False
-    # dataset_val = vid.VIDDataset(file_path='./yolox/data/datasets/val_seq.npy',
-    #                              img_size=(576, 576), preproc=Vid_Val_Transform(), lframe=lframe,
-    #                              gframe=gframe, val=True,mode=args.mode,dataset_pth=exp.data_dir)
-    # val_loader = vid.vid_val_loader(batch_size=lframe + gframe, data_num_workers=4, dataset=dataset_val,)
-    # trainer = Trainer(exp, args,val_loader,val=True)
-
 if __name__ == "__main__":
     args = make_parser().parse_args()
-    args = judge_user(args)
     exp = get_exp(args.exp_file, args.name)
-    exp.data_dir = args.data_dir
+
     exp.merge(args.opts)
     exp.test_size = (args.tsize, args.tsize)
     if not args.experiment_name:
