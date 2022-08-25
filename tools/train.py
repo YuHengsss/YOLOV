@@ -37,7 +37,7 @@ def make_parser():
     parser.add_argument(
         "-f",
         "--exp_file",
-        default='exps/epic/yoloxx_epic.py',
+        default='',
         type=str,
         help="plz input your experiment description file",
     )

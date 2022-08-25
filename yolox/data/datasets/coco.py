@@ -45,7 +45,6 @@ class COCODataset(Dataset):
         img_size=(416, 416),
         preproc=None,
         cache=False,
-        dataset_dir = ''
     ):
         """
         COCO dataset initialization. Annotation data are read into memory by COCO API.
@@ -61,7 +60,6 @@ class COCODataset(Dataset):
             data_dir = os.path.join(get_yolox_datadir(), "COCO")
         self.data_dir = data_dir
         self.json_file = json_file
-        self.dataset_dir = dataset_dir
         self.coco = COCO(os.path.join(self.data_dir, "annotations", self.json_file))
         remove_useless_info(self.coco)
         self.ids = self.coco.getImgIds()
@@ -190,8 +188,8 @@ class COCODataset(Dataset):
     def load_image(self, index):
 
         file_name = self.annotations[index][3]
-        img_file = os.path.join(self.dataset_dir,file_name)
-        img = cv2.imread(file_name)
+        img_file = os.path.join(self.data_dir,file_name)
+        img = cv2.imread(img_file)
         assert img is not None
 
         return img
