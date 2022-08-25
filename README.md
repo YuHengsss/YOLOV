@@ -83,7 +83,7 @@ path to your datasets/ILSVRC2015/
 path to your datasets/ILSVRC/
 ```
 
-Download our COCO-style annotations for [training](https://drive.google.com/file/d/1LOSjFnShXOmHef5XIyZRDiHFhLobjfjG/view?usp=sharing) and [video sequences](https://drive.google.com/file/d/1vJs8rLl_2oZOWCMJtk3a9ZJmdNn8cu-G/view?usp=sharing). Then, put them in these two directories:
+Download our COCO-style annotations for [training](https://drive.google.com/file/d/1HhE4OAcc--CpjUj69JCRXzMvIRsR4ymM/view?usp=sharing) and [video sequences](https://drive.google.com/file/d/1vJs8rLl_2oZOWCMJtk3a9ZJmdNn8cu-G/view?usp=sharing). Then, put them in these two directories:
 ```shell
 YOLOV/annotations/vid_train_coco.json
 YOLOV/yolox/data/dataset/train_seq.npy
