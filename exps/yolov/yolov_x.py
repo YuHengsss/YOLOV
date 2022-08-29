@@ -16,10 +16,9 @@ class Exp(MyExp):
         # Define yourself dataset path
 
         self.num_classes = 30
-        self.data_dir = "/media/tuf/ssd" #path to your dataset
+        self.data_dir = "" #path to your dataset
 
-        self.train_ann = "annotations_val10000_coco.json"
-        self.val_ann = "annotations_val10000_coco.json"
+
         self.max_epoch = 20
         self.no_aug_epochs = 2
         self.pre_no_aug = 2

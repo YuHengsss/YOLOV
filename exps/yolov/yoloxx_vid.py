@@ -15,8 +15,8 @@ class Exp(MyExp):
         self.num_classes = 30
         self.data_dir = "path to your root dir"
 
-        self.train_ann = "ILSVRC_final_coco.json"
-        self.val_ann = "annotations_val10000_coco.json"
+        self.train_ann = "vid_train_coco.json"
+        self.val_ann = "vid_val10000_coco.json"
         self.max_epoch = 7
         self.no_aug_epochs = 1
         self.warmup_epochs = 0

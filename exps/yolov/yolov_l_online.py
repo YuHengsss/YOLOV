@@ -16,9 +16,7 @@ class Exp(MyExp):
         # Define yourself dataset path
 
         self.num_classes = 30
-        self.data_dir = "/home/tuf/yh/YOLOX/"
-        self.train_ann = "annotations_val10000_coco.json"
-        self.val_ann = "annotations_val10000_coco.json"
+        self.data_dir = ""
         self.max_epoch = 8
         self.no_aug_epochs = 2
         self.pre_no_aug = 2
