@@ -26,7 +26,8 @@ This repo is an implementation of PyTorch version YOLOV based on [YOLOX](https:/
 | YOLOV-x + [post](https://github.com/AlbertoSabater/Robust-and-efficient-post-processing-for-video-object-detection) | 576  |        87.5        |                 -                  |                                              -                                               |
 
 
-
+## TODO
+Add YOLOv7 bases
 
 ## Quick Start
 
