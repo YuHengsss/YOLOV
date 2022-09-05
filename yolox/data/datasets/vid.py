@@ -201,6 +201,344 @@ class VIDDataset(torchDataset):
             img, target = self.preproc(img, target, self.input_dim)
         return img, target, img_info,path
 
+class Arg_VID(torchDataset):
+    """
+    VID sequence
+    """
+
+    def __init__(
+        self,
+        data_dir='/media/tuf/ssd/Argoverse-1.1/',
+        img_size=(416, 640),
+        preproc=None,
+        lframe = 0,
+        gframe = 16,
+        val = False,
+        mode='random',
+        COCO_anno = '',
+        name = "tracking",
+    ):
+        """
+        COCO dataset initialization. Annotation data are read into memory by COCO API.
+        Args:
+            data_dir (str): dataset root directory
+            json_file (str): COCO json file name
+            name (str): COCO data name (e.g. 'train2017' or 'val2017')
+            img_size (int): target image size after pre-processing
+            preproc: data augmentation strategy
+        """
+        super().__init__()
+        self.input_dim = img_size
+        self.name = name
+        self.val = val
+        self.data_dir = data_dir
+        self.img_size = img_size
+        self.coco_anno_path = COCO_anno
+        self.name_id_dic = self.get_NameId_dic()
+        self.coco = COCO(COCO_anno)
+        remove_useless_info(self.coco)
+        self.ids = sorted(self.coco.getImgIds())
+        self.class_ids = sorted(self.coco.getCatIds())
+        cats = self.coco.loadCats(self.coco.getCatIds())
+        self._classes = tuple([c["name"] for c in cats])
+        self.annotations = self._load_coco_annotations()
+        self.mode = mode  # random, continous, uniform
+        self.preproc = preproc
+
+        self.res = self.photo_to_sequence(lframe,gframe)
+
+    def get_NameId_dic(self):
+        img_dic = {}
+        with open(self.coco_anno_path,'r') as train_anno_content:
+            train_anno_content = json.load(train_anno_content)
+            for im in train_anno_content['images']:
+                img_dic[im['name']] = im['id']
+        return img_dic
+
+    def _load_coco_annotations(self):
+        return [self.load_anno_from_ids(_ids) for _ids in self.ids]
+
+    def __len__(self):
+        return len(self.res)
+
+    def load_anno_from_ids(self, id_):
+        im_ann = self.coco.loadImgs(id_)[0]
+        width = im_ann["width"]
+        height = im_ann["height"]
+        im_ann['name'] = self.coco.dataset['seq_dirs'][im_ann['sid']] + '/' + im_ann['name']
+        anno_ids = self.coco.getAnnIds(imgIds=[int(id_)], iscrowd=False)
+        annotations = self.coco.loadAnns(anno_ids)
+        objs = []
+        for obj in annotations:
+            x1 = np.max((0, obj["bbox"][0]))
+            y1 = np.max((0, obj["bbox"][1]))
+            x2 = np.min((width, x1 + np.max((0, obj["bbox"][2]))))
+            y2 = np.min((height, y1 + np.max((0, obj["bbox"][3]))))
+            if obj["area"] > 0 and x2 >= x1 and y2 >= y1:
+                obj["clean_bbox"] = [x1, y1, x2, y2]
+                objs.append(obj)
+
+        num_objs = len(objs)
+
+        res = np.zeros((num_objs, 5))
+
+        for ix, obj in enumerate(objs):
+            cls = self.class_ids.index(obj["category_id"])
+            res[ix, 0:4] = obj["clean_bbox"]
+            res[ix, 4] = cls
+
+        r = min(self.img_size[0] / height, self.img_size[1] / width)
+        res[:, :4] *= r
+
+        img_info = (height, width)
+        resized_info = (int(height * r), int(width * r))
+
+        file_name = (
+            im_ann["name"]
+            if "name" in im_ann
+            else "{:012}".format(id_) + ".jpg"
+        )
+
+        return (res, img_info, resized_info, file_name)
+
+    def photo_to_sequence(self,lframe,gframe, seq_len = 192):
+        '''
+
+        Args:
+            dataset_path: list,every element is a list contain all frame in a video dir
+        Returns:
+            split result
+        '''
+        res = []
+
+        with open(self.coco_anno_path, 'r') as anno:
+            anno = json.load(anno)
+            dataset = [[] for i in range(len(anno['sequences']))]
+            for im in anno['images']:
+                dataset[im['sid']].append(self.coco.dataset['seq_dirs'][im['sid']] + '/' + im['name'])
+            for ele in dataset:
+                sorted(ele)
+
+        for element in dataset:
+            ele_len = len(element)
+            if ele_len<lframe+gframe:
+                #TODO fix the unsolved part
+                #res.append(element)
+                continue
+            else:
+                if self.mode == 'random':
+                    # split_num = int(ele_len / (gframe))
+                    # random.shuffle(element)
+                    # for i in range(split_num):
+                    #     res.append(element[i * gframe:(i + 1) * gframe])
+                    # if self.val and element[(i + 1) * gframe:] != []:
+                    #     res.append(element[(i + 1) * gframe:])
+
+                    seq_split_num = int(len(element) / seq_len)
+                    for k in range(seq_split_num + 1):
+                        tmp = element[k * seq_len:(k + 1) * seq_len]
+                        if tmp == []:continue
+                        random.shuffle(tmp)
+                        split_num = int(len(tmp) / (gframe))
+                        for i in range(split_num):
+                            res.append(tmp[i * gframe:(i + 1) * gframe])
+                        if self.val and tmp[(i + 1) * gframe:] != []:
+                            res.append(tmp[(i + 1) * gframe:])
+                elif self.mode == 'uniform':
+                    split_num = int(ele_len / (gframe))
+                    all_uniform_frame = element[:split_num * gframe]
+                    for i in range(split_num):
+                        res.append(all_uniform_frame[i::split_num])
+                elif self.mode == 'gl':
+                    split_num = int(ele_len / (lframe))
+                    all_local_frame = element[:split_num * lframe]
+                    for i in range(split_num):
+                        g_frame = random.sample(element[:i * lframe] + element[(i + 1) * lframe:], gframe)
+                        res.append(all_local_frame[i * lframe:(i + 1) * lframe] + g_frame)
+                else:
+                    print('unsupport mode, exit')
+                    exit(0)
+
+        if self.val:
+            # random.seed(42)
+            # random.shuffle(res)
+            return res#[:1000]#[1000:1250]#[2852:2865]
+        else:
+            random.shuffle(res)
+            return res#[:1000]#[:15000]
+
+
+    def pull_item(self,path):
+        """
+                One image / label pair for the given index is picked up and pre-processed.
+
+                Args:
+                    index (int): data index
+
+                Returns:
+                    img (numpy.ndarray): pre-processed image
+                    padded_labels (torch.Tensor): pre-processed label data.
+                        The shape is :math:`[max_labels, 5]`.
+                        each label consists of [class, xc, yc, w, h]:
+                            class (float): class index.
+                            xc, yc (float) : center of bbox whose values range from 0 to 1.
+                            w, h (float) : size of bbox whose values range from 0 to 1.
+                    info_img : tuple of h, w.
+                        h, w (int): original shape of the image
+                    img_id (int): same as the input index. Used for evaluation.
+                """
+        path = path.split('/')[-1]
+        idx = self.name_id_dic[path]
+        annos, img_info, resized_info, img_path = self.annotations[idx]
+        abs_path = os.path.join(self.data_dir, self.name, img_path)
+        img = cv2.imread(abs_path)
+
+        height, width = img.shape[:2]
+        img_info = (height, width)
+        r = min(self.img_size[0] / img.shape[0], self.img_size[1] / img.shape[1])
+        img = cv2.resize(
+            img,
+            (int(img.shape[1] * r), int(img.shape[0] * r)),
+            interpolation=cv2.INTER_LINEAR,
+        ).astype(np.uint8)
+        return img, annos.copy(), img_info, img_path
+
+    def __getitem__(self, path):
+
+        img, target, img_info, path = self.pull_item(path)
+        if self.preproc is not None:
+            img, target = self.preproc(img, target, self.input_dim)
+        return img, target, img_info,path
+
+
+class OVIS(Arg_VID):
+    def load_anno_from_ids(self, id_):
+        im_ann = self.coco.loadImgs(id_)[0]
+        width = im_ann["width"]
+        height = im_ann["height"]
+        #im_ann['name'] = self.coco.dataset['seq_dirs'][im_ann['sid']] + '/' + im_ann['name']
+        anno_ids = self.coco.getAnnIds(imgIds=[int(id_)], iscrowd=False)
+        annotations = self.coco.loadAnns(anno_ids)
+        objs = []
+        for obj in annotations:
+            x1 = np.max((0, obj["bbox"][0]))
+            y1 = np.max((0, obj["bbox"][1]))
+            x2 = np.min((width, x1 + np.max((0, obj["bbox"][2]))))
+            y2 = np.min((height, y1 + np.max((0, obj["bbox"][3]))))
+            if obj["area"] > 0 and x2 >= x1 and y2 >= y1:
+                obj["clean_bbox"] = [x1, y1, x2, y2]
+                objs.append(obj)
+
+        num_objs = len(objs)
+
+        res = np.zeros((num_objs, 5))
+
+        for ix, obj in enumerate(objs):
+            cls = self.class_ids.index(obj["category_id"])
+            res[ix, 0:4] = obj["clean_bbox"]
+            res[ix, 4] = cls
+
+        r = min(self.img_size[0] / height, self.img_size[1] / width)
+        res[:, :4] *= r
+
+        img_info = (height, width)
+        resized_info = (int(height * r), int(width * r))
+
+        file_name = (
+            im_ann["name"]
+            if "name" in im_ann
+            else "{:012}".format(id_) + ".jpg"
+        )
+
+        return (res, img_info, resized_info, file_name)
+
+    def photo_to_sequence(self,lframe,gframe):
+        '''
+
+        Args:
+            dataset_path: list,every element is a list contain all frame in a video dir
+        Returns:
+            split result
+        '''
+        res = []
+
+        with open(self.coco_anno_path, 'r') as anno:
+            anno = json.load(anno)
+            dataset = [[] for i in range(len(anno['videos']))]
+            for im in anno['images']:
+                dataset[im['sid']].append(im['name'])
+            for ele in dataset:
+                sorted(ele)
+
+        for element in dataset:
+            ele_len = len(element)
+            if ele_len<lframe+gframe:
+                #TODO fix the unsolved part
+                #res.append(element)
+                continue
+            else:
+                if self.mode == 'random':
+                    split_num = int(ele_len / (gframe))
+                    random.shuffle(element)
+                    for i in range(split_num):
+                        res.append(element[i * gframe:(i + 1) * gframe])
+                elif self.mode == 'uniform':
+                    split_num = int(ele_len / (gframe))
+                    all_uniform_frame = element[:split_num * gframe]
+                    for i in range(split_num):
+                        res.append(all_uniform_frame[i::split_num])
+                elif self.mode == 'gl':
+                    split_num = int(ele_len / (lframe))
+                    all_local_frame = element[:split_num * lframe]
+                    for i in range(split_num):
+                        g_frame = random.sample(element[:i * lframe] + element[(i + 1) * lframe:], gframe)
+                        res.append(all_local_frame[i * lframe:(i + 1) * lframe] + g_frame)
+                else:
+                    print('unsupport mode, exit')
+                    exit(0)
+
+        if self.val:
+            random.seed(42)
+            random.shuffle(res)
+            return res#[2000:3000]#[1000:1250]#[2852:2865]
+        else:
+            random.shuffle(res)
+            return res#[:15000]
+
+    def pull_item(self,path):
+        """
+                One image / label pair for the given index is picked up and pre-processed.
+
+                Args:
+                    index (int): data index
+
+                Returns:
+                    img (numpy.ndarray): pre-processed image
+                    padded_labels (torch.Tensor): pre-processed label data.
+                        The shape is :math:`[max_labels, 5]`.
+                        each label consists of [class, xc, yc, w, h]:
+                            class (float): class index.
+                            xc, yc (float) : center of bbox whose values range from 0 to 1.
+                            w, h (float) : size of bbox whose values range from 0 to 1.
+                    info_img : tuple of h, w.
+                        h, w (int): original shape of the image
+                    img_id (int): same as the input index. Used for evaluation.
+                """
+        idx = self.name_id_dic[path]
+        annos, img_info, resized_info, img_path = self.annotations[idx]
+        abs_path = os.path.join(self.data_dir,self.name, img_path)
+        img = cv2.imread(abs_path)
+
+        height, width = img.shape[:2]
+        img_info = (height, width)
+        r = min(self.img_size[0] / img.shape[0], self.img_size[1] / img.shape[1])
+        img = cv2.resize(
+            img,
+            (int(img.shape[1] * r), int(img.shape[0] * r)),
+            interpolation=cv2.INTER_LINEAR,
+        ).astype(np.uint8)
+        return img, annos.copy(), img_info, img_path
+
 
 
 def get_xml_list(path):
