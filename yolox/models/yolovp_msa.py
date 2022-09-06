@@ -271,7 +271,7 @@ class YOLOXHead(nn.Module):
 
         features_cls, features_reg, cls_scores, fg_scores = self.find_feature_score(cls_feat_flatten, pred_idx,
                                                                                     reg_feat_flatten, imgs,
-                                                                                    pred_result)  # [b*50,5,128]
+                                                                                    pred_result)  # features_cls:[batch_size*defualt_p,feature_dim]
         features_reg = features_reg.unsqueeze(0)
         features_cls = features_cls.unsqueeze(0)
         if not self.training:
