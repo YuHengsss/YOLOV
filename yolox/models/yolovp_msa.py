@@ -257,7 +257,7 @@ class YOLOXHead(nn.Module):
         decode_res = self.decode_outputs(outputs_decode, dtype=xin[0].type())
 
         pred_result, pred_idx = self.postpro_woclass(decode_res, num_classes=self.num_classes, nms_thre=self.nms_thresh,
-                                                     topK=self.Afternum)  # postprocess(decode_res,num_classes=30)
+                                                     topK=self.Afternum)   # postprocess(decode_res,num_classes=30)
         #return pred_result
         if not self.training and imgs.shape[0] == 1:
             return self.postprocess_single_img(pred_result, self.num_classes)
