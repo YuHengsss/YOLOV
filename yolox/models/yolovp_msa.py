@@ -73,6 +73,7 @@ class YOLOXHead(nn.Module):
                                      num_classes + 1)  # Mlp(in_features=512,hidden_features=self.num_classes+1)
         self.sim_thresh = sim_thresh
         self.ave = ave
+        self.use_mask = use_mask
         Conv = DWConv if depthwise else BaseConv
 
         for i in range(len(in_channels)):
@@ -201,7 +202,6 @@ class YOLOXHead(nn.Module):
         before_nms_features = []
         before_nms_regf = []
 
-
         for k, (cls_conv, cls_conv2, reg_conv, stride_this_level, x) in enumerate(
                 zip(self.cls_convs, self.cls_convs2, self.reg_convs, self.strides, xin)
         ):
@@ -259,8 +259,8 @@ class YOLOXHead(nn.Module):
         decode_res = self.decode_outputs(outputs_decode, dtype=xin[0].type())
 
         pred_result, pred_idx = self.postpro_woclass(decode_res, num_classes=self.num_classes, nms_thre=self.nms_thresh,
-                                                     topK=self.Afternum)  # postprocess(decode_res,num_classes=30)
-        #return pred_result
+                                                     topK=self.Afternum)
+        # return pred_result
         if not self.training and imgs.shape[0] == 1:
             return self.postprocess_single_img(pred_result, self.num_classes)
 
@@ -273,7 +273,7 @@ class YOLOXHead(nn.Module):
 
         features_cls, features_reg, cls_scores, fg_scores = self.find_feature_score(cls_feat_flatten, pred_idx,
                                                                                     reg_feat_flatten, imgs,
-                                                                                    pred_result)  # features_cls:[batch_size*defualt_p,feature_dim]
+                                                                                    pred_result)
         features_reg = features_reg.unsqueeze(0)
         features_cls = features_cls.unsqueeze(0)
         if not self.training:
@@ -283,7 +283,7 @@ class YOLOXHead(nn.Module):
             trans_cls = self.trans(features_cls, features_reg, cls_scores, fg_scores, sim_thresh=self.sim_thresh,
                                    ave=self.ave, use_mask=self.use_mask)
         else:
-            trans_cls = self.trans(features_cls, features_reg, None, None, sim_thresh=self.sim_thresh,ave = self.ave)
+            trans_cls = self.trans(features_cls, features_reg, None, None, sim_thresh=self.sim_thresh, ave=self.ave)
         fc_output = self.linear_pred(trans_cls)
         fc_output = torch.reshape(fc_output, [outputs_decode.shape[0], -1, self.num_classes + 1])[:, :, :-1]
 
@@ -305,7 +305,8 @@ class YOLOXHead(nn.Module):
         else:
 
             class_conf, class_pred = torch.max(fc_output, -1, keepdim=False)  #
-            result, result_ori = postprocess(copy.deepcopy(pred_result), self.num_classes, fc_output,nms_thre=nms_thresh )
+            result, result_ori = postprocess(copy.deepcopy(pred_result), self.num_classes, fc_output,
+                                             nms_thre=nms_thresh)
 
             return result, result_ori  # result
 
@@ -516,7 +517,7 @@ class YOLOXHead(nn.Module):
 
                     else:
                         ref_target[ele_idx, -1] = 1 - max_iou.values[ele_idx]
-                        
+
             cls_targets.append(cls_target)
             reg_targets.append(reg_target)
             obj_targets.append(obj_target.to(dtype))
@@ -853,8 +854,6 @@ class YOLOXHead(nn.Module):
             output_index[i] = topk_idx
 
         return output, output_index
-
-
 
     def postprocess_single_img(self, prediction, num_classes, conf_thre=0.001, nms_thre=0.5):
 
