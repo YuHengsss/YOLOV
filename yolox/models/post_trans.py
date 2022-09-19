@@ -18,7 +18,7 @@ def visual_attention(data):
     plt.show()
 
 class Attention_msa(nn.Module):
-    def __init__(self, dim, num_heads=8, qkv_bias=False,attn_drop=0., scale=25):
+    def __init__(self, dim, num_heads=8, qkv_bias=False, attn_drop=0., scale=25):
         # dim :input[batchsize,sequence length, input dimension]-->output[batchsize, sequence lenght, dim]
         # qkv_bias : Is it matter?
         # qk_scale, attn_drop,proj_drop will not be used
@@ -33,7 +33,8 @@ class Attention_msa(nn.Module):
         self.qkv_reg = nn.Linear(dim, dim * 3, bias=qkv_bias)
         self.attn_drop = nn.Dropout(attn_drop)
 
-    def forward(self, x_cls, x_reg, cls_score=None, fg_score=None, return_attention=False,ave = True,sim_thresh = 0.75):
+    def forward(self, x_cls, x_reg, cls_score=None, fg_score=None, return_attention=False, ave=True, sim_thresh=0.75,
+                use_mask=False):
         B, N, C = x_cls.shape
 
         qkv_cls = self.qkv_cls(x_cls).reshape(B, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1,
@@ -46,51 +47,59 @@ class Attention_msa(nn.Module):
         k_cls = k_cls / torch.norm(k_cls, dim=-1, keepdim=True)
         q_reg = q_reg / torch.norm(q_reg, dim=-1, keepdim=True)
         k_reg = k_reg / torch.norm(k_reg, dim=-1, keepdim=True)
-        v_cls_normed = v_cls / torch.norm(v_cls,dim=-1,keepdim=True)
+        v_cls_normed = v_cls / torch.norm(v_cls, dim=-1, keepdim=True)
 
         if cls_score == None:
             cls_score = 1
         else:
-            cls_score = torch.reshape(cls_score,[1,1,1,-1]).repeat(1,self.num_heads,N, 1)
+            cls_score = torch.reshape(cls_score, [1, 1, 1, -1]).repeat(1, self.num_heads, N, 1)
 
         if fg_score == None:
             fg_score = 1
         else:
-            fg_score = torch.reshape(fg_score, [1, 1, 1, -1]).repeat(1,self.num_heads,N, 1)
+            fg_score = torch.reshape(fg_score, [1, 1, 1, -1]).repeat(1, self.num_heads, N, 1)
 
         attn_cls_raw = v_cls_normed @ v_cls_normed.transpose(-2, -1)
+        if use_mask:
+            # only reference object with higher confidence..
+            cls_score_mask = (cls_score > (cls_score.transpose(-2, -1) - 0.1)).type_as(cls_score)
+            fg_score_mask = (fg_score > (fg_score.transpose(-2, -1) - 0.1)).type_as(fg_score)
+        else:
+            cls_score_mask = fg_score_mask = 1
 
-        attn_cls = (q_cls @ k_cls.transpose(-2, -1)) * self.scale * cls_score
+        # cls_score_mask = (cls_score < (cls_score.transpose(-2, -1) + 0.1)).type_as(cls_score)
+        # fg_score_mask = (fg_score < (fg_score.transpose(-2, -1) + 0.1)).type_as(fg_score)
+        # visual_attention(cls_score[0, 0, :, :])
+        # visual_attention(cls_score_mask[0,0,:,:])
+
+        attn_cls = (q_cls @ k_cls.transpose(-2, -1)) * self.scale * cls_score * cls_score_mask
         attn_cls = attn_cls.softmax(dim=-1)
         attn_cls = self.attn_drop(attn_cls)
 
-        attn_reg = (q_reg @ k_reg.transpose(-2, -1)) * self.scale * fg_score
+        attn_reg = (q_reg @ k_reg.transpose(-2, -1)) * self.scale * fg_score * fg_score_mask
         attn_reg = attn_reg.softmax(dim=-1)
         attn_reg = self.attn_drop(attn_reg)
 
         attn = (attn_reg + attn_cls) / 2
         x = (attn @ v_cls).transpose(1, 2).reshape(B, N, C)
 
-        x_ori = v_cls.permute(0,2,1,3).reshape(B, N, C)
+        x_ori = v_cls.permute(0, 2, 1, 3).reshape(B, N, C)
         x_cls = torch.cat([x, x_ori], dim=-1)
         #
-        # visual_attention(torch.sum(attn_cls,dim=1)[0, :, :])
-        # visual_attention(torch.sum(attn_reg,dim=1)[0, :, :])
-        # visual_attention(torch.sum(attn,dim=1)[0, :, :])
 
         if ave:
             ones_matrix = torch.ones(attn.shape[2:]).to('cuda')
             zero_matrix = torch.zeros(attn.shape[2:]).to('cuda')
 
-            attn_cls_raw = torch.sum(attn_cls_raw,dim=1,keepdim=False)[0] / self.num_heads
+            attn_cls_raw = torch.sum(attn_cls_raw, dim=1, keepdim=False)[0] / self.num_heads
             sim_mask = torch.where(attn_cls_raw > sim_thresh, ones_matrix, zero_matrix)
             sim_attn = torch.sum(attn, dim=1, keepdim=False)[0] / self.num_heads
 
             sim_round2 = torch.softmax(sim_attn, dim=-1)
-            sim_round2 = sim_mask*sim_round2/(torch.sum(sim_mask*sim_round2,dim=-1,keepdim=True))
-            return x_cls,None,sim_round2
+            sim_round2 = sim_mask * sim_round2 / (torch.sum(sim_mask * sim_round2, dim=-1, keepdim=True))
+            return x_cls, None, sim_round2
         else:
-            return x_cls,None,None
+            return x_cls, None, None
 
 class Attention_msa_visual(nn.Module):
     def __init__(self, dim, num_heads=8, qkv_bias=False,attn_drop=0., scale=25):
@@ -251,15 +260,14 @@ class MSA_yolov(nn.Module):
         cls_feature = torch.cat([soft_sim_feature,key_feature],dim=-1)
         return cls_feature
 
-    def forward(self,x_cls, x_reg, cls_score = None, fg_score = None,sim_thresh = 0.75,ave = True):
-        trans_cls, trans_reg, sim_round2 = self.msa(x_cls,x_reg,cls_score,fg_score,sim_thresh=sim_thresh,ave = ave)
+    def forward(self, x_cls, x_reg, cls_score=None, fg_score=None, sim_thresh=0.75, ave=True, use_mask=False):
+        trans_cls, trans_reg, sim_round2 = self.msa(x_cls, x_reg, cls_score, fg_score, sim_thresh=sim_thresh, ave=ave,
+                                                    use_mask=use_mask)
         msa = self.linear1(trans_cls)
-
-        msa = self.ave_pooling_over_ref(msa,sim_round2)
+        msa = self.ave_pooling_over_ref(msa, sim_round2)
 
         out = self.linear2(msa)
         return out
-
 
 class MSA_yolov_visual(nn.Module):
 

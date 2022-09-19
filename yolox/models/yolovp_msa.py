@@ -37,9 +37,11 @@ class YOLOXHead(nn.Module):
             use_score=True,
             defualt_p=30,
             sim_thresh=0.75,
-            pre_nms = 0.75,
-            ave = True,
-            defulat_pre = 750
+            pre_nms=0.75,
+            ave=True,
+            defulat_pre=750,
+            test_conf=0.001,
+            use_mask=False
     ):
         """
         Args:
@@ -278,7 +280,8 @@ class YOLOXHead(nn.Module):
             cls_scores = cls_scores.to(cls_feat_flatten.dtype)
             fg_scores = fg_scores.to(cls_feat_flatten.dtype)
         if self.use_score:
-            trans_cls = self.trans(features_cls, features_reg, cls_scores, fg_scores, sim_thresh=self.sim_thresh,ave = self.ave)
+            trans_cls = self.trans(features_cls, features_reg, cls_scores, fg_scores, sim_thresh=self.sim_thresh,
+                                   ave=self.ave, use_mask=self.use_mask)
         else:
             trans_cls = self.trans(features_cls, features_reg, None, None, sim_thresh=self.sim_thresh,ave = self.ave)
         fc_output = self.linear_pred(trans_cls)
