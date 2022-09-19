@@ -37,9 +37,11 @@ class YOLOXHead(nn.Module):
             use_score=True,
             defualt_p=30,
             sim_thresh=0.75,
-            pre_nms = 0.75,
-            ave = True,
-            defulat_pre = 750
+            pre_nms=0.75,
+            ave=True,
+            defulat_pre=750,
+            test_conf=0.001,
+            use_mask=False
     ):
         """
         Args:
@@ -71,6 +73,7 @@ class YOLOXHead(nn.Module):
                                      num_classes + 1)  # Mlp(in_features=512,hidden_features=self.num_classes+1)
         self.sim_thresh = sim_thresh
         self.ave = ave
+        self.use_mask = use_mask
         Conv = DWConv if depthwise else BaseConv
 
         for i in range(len(in_channels)):
@@ -271,16 +274,17 @@ class YOLOXHead(nn.Module):
 
         features_cls, features_reg, cls_scores, fg_scores = self.find_feature_score(cls_feat_flatten, pred_idx,
                                                                                     reg_feat_flatten, imgs,
-                                                                                    pred_result)  # [b*50,5,128]
+                                                                                    pred_result)
         features_reg = features_reg.unsqueeze(0)
         features_cls = features_cls.unsqueeze(0)
         if not self.training:
             cls_scores = cls_scores.to(cls_feat_flatten.dtype)
             fg_scores = fg_scores.to(cls_feat_flatten.dtype)
         if self.use_score:
-            trans_cls = self.trans(features_cls, features_reg, cls_scores, fg_scores, sim_thresh=self.sim_thresh,ave = self.ave)
+            trans_cls = self.trans(features_cls, features_reg, cls_scores, fg_scores, sim_thresh=self.sim_thresh,
+                                   ave=self.ave, use_mask=self.use_mask)
         else:
-            trans_cls = self.trans(features_cls, features_reg, None, None, sim_thresh=self.sim_thresh,ave = self.ave)
+            trans_cls = self.trans(features_cls, features_reg, None, None, sim_thresh=self.sim_thresh, ave=self.ave)
         fc_output = self.linear_pred(trans_cls)
         fc_output = torch.reshape(fc_output, [outputs_decode.shape[0], -1, self.num_classes + 1])[:, :, :-1]
 
@@ -510,7 +514,6 @@ class YOLOXHead(nn.Module):
 
                         ref_target[ele_idx, :self.num_classes] = cls_target_onehot[max_idx, :] * max_iou.values[ele_idx]
                         fg += 1
-
                     else:
                         ref_target[ele_idx, -1] = 1 - max_iou.values[ele_idx]
                         
@@ -562,8 +565,7 @@ class YOLOXHead(nn.Module):
         reg_weight = 3.0
 
         loss = reg_weight * loss_iou + loss_obj + 2 * loss_ref + loss_l1 + loss_cls
-        # if loss_obj > 20:
-        #     loss = loss_l1+loss_ref
+
         return (
             loss,
             reg_weight * loss_iou,
@@ -833,7 +835,7 @@ class YOLOXHead(nn.Module):
             detections = torch.cat(
                 (image_pred[:, :5], class_conf, class_pred.float(), image_pred[:, 5: 5 + num_classes]), 1)
 
-            conf_score = image_pred[:, 4]  # * class_conf.squeeze()
+            conf_score = image_pred[:, 4]
             top_pre = torch.topk(conf_score, k=self.Prenum)
             sort_idx = top_pre.indices[:self.Prenum]
             detections_temp = detections[sort_idx, :]
@@ -844,14 +846,11 @@ class YOLOXHead(nn.Module):
                 nms_thre,
             )
 
-            # print(len(nms_out_index))
             topk_idx = sort_idx[nms_out_index[:self.topK]]
             output[i] = detections[topk_idx, :]
             output_index[i] = topk_idx
 
         return output, output_index
-
-
 
     def postprocess_single_img(self, prediction, num_classes, conf_thre=0.001, nms_thre=0.5):
 
