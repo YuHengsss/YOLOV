@@ -48,8 +48,6 @@ conda activate yolov
 
 pip install -r requirements.txt
 
-pip install yolox==0.3
-
 pip3 install -v -e .
 ```
 </details>
