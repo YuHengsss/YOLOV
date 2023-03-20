@@ -132,5 +132,10 @@ tnum indicates testing sequence number.
 If YOLOV is helpful for your research, please cite the following paper:
 
 ```latex
-
+@article{shi2022yolov,
+  title={YOLOV: Making Still Image Object Detectors Great at Video Object Detection},
+  author={Shi, Yuheng and Wang, Naiyan and Guo, Xiaojie},
+  journal={arXiv preprint arXiv:2208.09686},
+  year={2022}
+}
 ```
