@@ -57,17 +57,17 @@ pip3 install -v -e .
 
 Step1. Download a pretrained weights.
 
-Step2. Run demos. For example:
+Step2. Run yolov demos. For example:
 
 ```shell
-python tools/vid_demo.py -f [path to your exp files] -c [path to your weights] --path /path/to/your/video --conf 0.25 --nms 0.5 --tsize 576 --save_result 
+python tools/vid_demo.py -f [path to your yolov exp files] -c [path to your yolov weights] --path /path/to/your/video --conf 0.25 --nms 0.5 --tsize 576 --save_result 
 ```
-For online mode, you can run:
+For online mode, exampled with yolov_l, you can run:
 
 ```shell
 python tools/yolov_demo_online.py -f ./exp/yolov/yolov_l_online.py -c [path to your weights] --path /path/to/your/video --conf 0.25 --nms 0.5 --tsize 576 --save_result 
 ```
-
+For yolox models, please use python tools/demo.py for inferencing.
 </details>
 
 <details>
