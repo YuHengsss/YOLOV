@@ -93,11 +93,11 @@ Change the data_dir in exp files to [path to your datasets] and Download our wei
 Step2. Generate predictions and convert them to IMDB style for evaluation.
 
 ```shell
-python tools/val_to_imdb.py -f exps/yolov/yolov_x.py -c path to your weights/yolov_x.pth --fp16 --output_dir ./yolov_x.pickle
+python tools/val_to_imdb.py -f exps/yolov/yolov_x.py -c path to your weights/yolov_x.pth --fp16 --output_dir ./yolov_x.pkl
 ```
 Evaluation process:
 ```shell
-python tools/REPPM.py --repp_cfg ./tools/yolo_repp_cfg.json --predictions_file ./yolov_x.pckl --evaluate --annotations_filename ./annotations/annotations_val_ILSVRC.txt --path_dataset [path to your dataset] --store_imdb --store_coco  (--post)
+python tools/REPPM.py --repp_cfg ./tools/yolo_repp_cfg.json --predictions_file ./yolov_x.pkl --evaluate --annotations_filename ./annotations/annotations_val_ILSVRC.txt --path_dataset [path to your dataset] --store_imdb --store_coco  (--post)
 ```
 (--post) indicates involving post-processing method. Then you will get:
 ```shell
