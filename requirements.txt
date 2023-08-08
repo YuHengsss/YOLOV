@@ -1,5 +1,5 @@
 numpy
-torch==1.9.0
+torch>=1.7.0
 opencv_python
 loguru
 scikit-image
@@ -14,7 +14,7 @@ lap
 motmetrics
 filterpy
 h5py
-sklearn
+scikit-learn
 
 
 # verified versions
