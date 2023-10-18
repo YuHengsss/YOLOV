@@ -27,7 +27,7 @@ This repo is an implementation of PyTorch version YOLOV based on [YOLOX](https:/
 
 
 ## TODO
-Add YOLOv7 bases
+Finish Swin-Transformer based experiments.
 
 ## Quick Start
 
