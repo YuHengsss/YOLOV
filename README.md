@@ -118,17 +118,25 @@ tnum indicates testing sequence number.
 
 
 ## Annotation format in YOLOV
+
 <details>
   
+<summary> <b>Details</b> </summary>
+
 **Training base detector**
+
+
 The train_coco.json is a COCO format annotation file. When trainig the base detector on your own dataset, try to convert the annotation to COCO format.
 
 **Training YOLOV**
+
+
 The train_seq.npy and val_seq.npy files are numpy arrays of lists. They can be loaded using the following command:
 ```shell
 numpy.load('./yolox/data/datasets/train_seq.npy',allow_pickle=True)
 ```
 Each list contains the paths to all images in a video. The specific annotations(xml annotation in VID dataset) are loaded via these image paths, refer to https://github.com/YuHengsss/YOLOV/blob/f5a57ddea2f3660875d6d75fc5fa2ddbb95028a7/yolox/data/datasets/vid.py#L125 for more details.
+
 </details>
 
 ## Acknowledgements
