@@ -1,7 +1,9 @@
 
 
 # YOLOV for video object detection.
-
+## Update
+* **` April. 21th, 2024`**: **Update:** Our enhanced model now achieves a 92.9 AP50(w.o post-processing) on the ImageNet VID dataset, thanks to a more robust backbone and algorithm improvements. It maintains a processing time of 26.5ms per image during batch inference on a 3090 GPU. Code release is forthcoming.
+  
 ## Introduction
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/yolov-making-still-image-object-detectors/video-object-detection-on-imagenet-vid)](https://paperswithcode.com/sota/video-object-detection-on-imagenet-vid?p=yolov-making-still-image-object-detectors)
 
