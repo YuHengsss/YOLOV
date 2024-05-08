@@ -11,7 +11,7 @@ import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.tensorboard import SummaryWriter
 
-from yolox.data import DataPrefetcher
+from yolox.data import DataPrefetcherBase as DataPrefetcher
 from yolox.exp import Exp
 from yolox.utils import (
     MeterBuffer,

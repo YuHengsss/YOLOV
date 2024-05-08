@@ -30,13 +30,50 @@ from yolox.utils import (
     setup_logger,
     synchronize
 )
-
+import re
 
 def fix_bn(m):
     classname = m.__class__.__name__
     if classname.find('BatchNorm') != -1:
 
         m.eval()
+
+def extract_values(text):
+    AP75 = re.search(r'Average Precision  \(AP\) @\[ IoU=0.75.*? \] = (\d+\.\d+)', text).group(1)
+    try:
+        AP_small = re.search(r'Average Precision  \(AP\) @\[ IoU=0.50:0.95 \| area= small.*? \] = (\d+\.\d+)', text).group(1)
+        AP_medium = re.search(r'Average Precision  \(AP\) @\[ IoU=0.50:0.95 \| area=medium.*? \] = (\d+\.\d+)', text).group(1)
+        AP_large = re.search(r'Average Precision  \(AP\) @\[ IoU=0.50:0.95 \| area= large.*? \] = (\d+\.\d+)', text).group(1)
+        AR1 = re.search(r'Average Recall     \(AR\) @\[ IoU=0.50:0.95 \| area=   all \| maxDets=  1 \] = (\d+\.\d+)', text).group(1)
+        AR10 = re.search(r'Average Recall     \(AR\) @\[ IoU=0.50:0.95 \| area=   all \| maxDets= 10 \] = (\d+\.\d+)', text).group(1)
+        AR100 = re.search(r'Average Recall     \(AR\) @\[ IoU=0.50:0.95 \| area=   all \| maxDets=100 \] = (\d+\.\d+)', text).group(1)
+        AR_small = re.search(r'Average Recall     \(AR\) @\[ IoU=0.50:0.95 \| area= small.*? \] = (\d+\.\d+)', text).group(1)
+        AR_medium = re.search(r'Average Recall     \(AR\) @\[ IoU=0.50:0.95 \| area=medium.*? \] = (\d+\.\d+)', text).group(1)
+        AR_large = re.search(r'Average Recall     \(AR\) @\[ IoU=0.50:0.95 \| area= large.*? \] = (\d+\.\d+)', text).group(1)
+    except Exception:
+        AP_small = 0
+        AP_medium = 0
+        AP_large = 0
+        AR1 = 0
+        AR10 = 0
+        AR100 = 0
+        AR_small = 0
+        AR_medium = 0
+        AR_large = 0
+
+    return {
+        'AP75': float(AP75),
+        'AP_small': float(AP_small),
+        'AP_medium': float(AP_medium),
+        'AP_large': float(AP_large),
+        'AR1': float(AR1),
+        'AR10': float(AR10),
+        'AR100': float(AR100),
+        'AR_small': float(AR_small),
+        'AR_medium': float(AR_medium),
+        'AR_large': float(AR_large)
+    }
+
 
 class Trainer:
     def __init__(self, exp, args, val_loader,val=False):
@@ -107,11 +144,12 @@ class Trainer:
         inps = inps.to(self.data_type)
         targets = targets.to(self.data_type)
         targets.requires_grad = False
-        inps, targets = self.exp.preprocess(inps, targets, self.input_size)
+        inps, targets = self.exp.preprocess(inps, targets, self.input_size,
+                                            )
         data_end_time = time.time()
 
         with torch.cuda.amp.autocast(enabled=self.amp_training):
-            outputs = self.model(inps, targets)
+            outputs = self.model(inps, targets, lframe = self.exp.lframe,gframe = self.exp.gframe)
 
         loss = outputs["total_loss"]
 
@@ -200,25 +238,24 @@ class Trainer:
 
     def before_epoch(self):
         logger.info("---> start train epoch{}".format(self.epoch + 1))
-        if (self.epoch + 1- self.exp.warmup_epochs - self.exp.pre_no_aug) % 4 ==0 \
-                and (self.epoch + 1- self.exp.warmup_epochs - self.exp.pre_no_aug) \
-                and (self.epoch + 1 < self.max_epoch - self.exp.no_aug_epochs):
-            self.train_loader = self.exp.get_data_loader(
-                batch_size=self.args.batch_size,
-                is_distributed=self.is_distributed,
-                no_aug=self.no_aug,
-                cache_img=self.args.cache,
-            )
-            logger.info('Refreshing dataloader')
+        # if (self.epoch + 1- self.exp.warmup_epochs - self.exp.pre_no_aug) % 4 ==0 \
+        #         and (self.epoch + 1- self.exp.warmup_epochs - self.exp.pre_no_aug) \
+        #         and (self.epoch + 1 < self.max_epoch - self.exp.no_aug_epochs):
+        #     self.train_loader = self.exp.get_data_loader(
+        #         batch_size=self.args.batch_size,
+        #         is_distributed=self.is_distributed,
+        #         no_aug=self.no_aug,
+        #         cache_img=self.args.cache,
+        #     )
+        #     logger.info('Refreshing dataloader')
         if self.epoch + 1 >= self.max_epoch - self.exp.no_aug_epochs or self.no_aug:
             logger.info("--->No mosaic aug now!")
-            logger.info("--->Add additional L1 loss now!")
             self.train_loader.dataset.enable_mosaic = False
             self.prefetcher = vid.DataPrefetcher(self.train_loader)
-            if self.is_distributed:
-                self.model.module.head.use_l1 = True
-            else:
-                self.model.head.use_l1 = True
+            # if self.is_distributed:
+            #     self.model.module.head.use_l1 = True
+            # else:
+            #     self.model.head.use_l1 = True
             self.exp.eval_interval = 1
             if not self.no_aug and self.epoch + 1 == self.max_epoch - self.exp.no_aug_epochs:
                 self.save_ckpt(ckpt_name="last_mosaic_epoch")
@@ -337,15 +374,20 @@ class Trainer:
             val_loader=self.val_loader
         )
         summary = self.exp.eval(
-            evalmodel, self.evaluator, self.is_distributed
+            evalmodel, self.evaluator, self.is_distributed,self.args.fp16
         )
         self.model.train()
 
         ap50_95 = summary[0]
         ap50 = summary[1]
+
+        summary_info = summary[-1]
+        detail_info = extract_values(summary_info)
         if self.rank == 0:
             self.tblogger.add_scalar("val/COCOAP50", ap50, self.epoch + 1)
             self.tblogger.add_scalar("val/COCOAP50_95", ap50_95, self.epoch + 1)
+            for k, v in detail_info.items():
+                self.tblogger.add_scalar("val/{}".format(k), v, self.epoch + 1)
             self.tblogger.add_scalar("lr", self.lr, self.epoch + 1)
             logger.info('\n'+ str(summary[-1]))
 
@@ -373,7 +415,7 @@ class Trainer:
             val_loader=self.val_loader
         )
         summary = self.exp.eval(
-            evalmodel, self.evaluator, self.is_distributed,self.amp_training
+            evalmodel, self.evaluator, self.is_distributed, self.amp_training
         )
         self.model.train()
         if self.rank == 0:

@@ -11,7 +11,7 @@ import tempfile
 import time
 from loguru import logger
 from tqdm import tqdm
-from yolox.evaluators.coco_evaluator import per_class_AR_table,per_class_AP_table
+from yolox.evaluators.coco_evaluator import per_class_AR_table, per_class_AP_table
 import torch
 import pycocotools.coco
 
@@ -23,17 +23,20 @@ from yolox.utils import (
     time_synchronized,
     xyxy2xywh
 )
+
 vid_classes = (
-                'airplane', 'antelope', 'bear', 'bicycle',
-                'bird', 'bus', 'car', 'cattle',
-                'dog', 'domestic_cat', 'elephant', 'fox',
-                'giant_panda', 'hamster', 'horse', 'lion',
-                'lizard', 'monkey', 'motorcycle', 'rabbit',
-                'red_panda', 'sheep', 'snake', 'squirrel',
-                'tiger', 'train', 'turtle', 'watercraft',
-                'whale', 'zebra'
+    'airplane', 'antelope', 'bear', 'bicycle',
+    'bird', 'bus', 'car', 'cattle',
+    'dog', 'domestic_cat', 'elephant', 'fox',
+    'giant_panda', 'hamster', 'horse', 'lion',
+    'lizard', 'monkey', 'motorcycle', 'rabbit',
+    'red_panda', 'sheep', 'snake', 'squirrel',
+    'tiger', 'train', 'turtle', 'watercraft',
+    'whale', 'zebra'
 )
-#from yolox.data.datasets.vid_classes import Arg_classes as  vid_classes
+
+
+# from yolox.data.datasets.vid_classes import Arg_classes as  vid_classes
 
 class VIDEvaluator:
     """
@@ -42,7 +45,9 @@ class VIDEvaluator:
     """
 
     def __init__(
-        self, dataloader, img_size, confthre, nmsthre, num_classes, testdev=False, gl_mode = False
+            self, dataloader, img_size, confthre, nmsthre,
+            num_classes, testdev=False, gl_mode=False,
+            lframe=0, gframe=32,**kwargs
     ):
         """
         Args:
@@ -58,19 +63,49 @@ class VIDEvaluator:
         self.confthre = confthre
         self.nmsthre = nmsthre
         self.num_classes = num_classes
-        # self.lframe = lframe
-        # self.gframe = gframe
         self.id = 0
         self.box_id = 0
         self.id_ori = 0
         self.box_id_ori = 0
         self.gl_mode = gl_mode
+        self.lframe = lframe
+        self.gframe = gframe
+        self.kwargs = kwargs
         self.vid_to_coco = {
             'info': {
                 'description': 'nothing',
             },
             'annotations': [],
-            'categories': [{"supercategorie": "", "id": 0, "name": "airplane"}, {"supercategorie": "", "id": 1, "name": "antelope"}, {"supercategorie": "", "id": 2, "name": "bear"}, {"supercategorie": "", "id": 3, "name": "bicycle"}, {"supercategorie": "", "id": 4, "name": "bird"}, {"supercategorie": "", "id": 5, "name": "bus"}, {"supercategorie": "", "id": 6, "name": "car"}, {"supercategorie": "", "id": 7, "name": "cattle"}, {"supercategorie": "", "id": 8, "name": "dog"}, {"supercategorie": "", "id": 9, "name": "domestic_cat"}, {"supercategorie": "", "id": 10, "name": "elephant"}, {"supercategorie": "", "id": 11, "name": "fox"}, {"supercategorie": "", "id": 12, "name": "giant_panda"}, {"supercategorie": "", "id": 13, "name": "hamster"}, {"supercategorie": "", "id": 14, "name": "horse"}, {"supercategorie": "", "id": 15, "name": "lion"}, {"supercategorie": "", "id": 16, "name": "lizard"}, {"supercategorie": "", "id": 17, "name": "monkey"}, {"supercategorie": "", "id": 18, "name": "motorcycle"}, {"supercategorie": "", "id": 19, "name": "rabbit"}, {"supercategorie": "", "id": 20, "name": "red_panda"}, {"supercategorie": "", "id": 21, "name": "sheep"}, {"supercategorie": "", "id": 22, "name": "snake"}, {"supercategorie": "", "id": 23, "name": "squirrel"}, {"supercategorie": "", "id": 24, "name": "tiger"}, {"supercategorie": "", "id": 25, "name": "train"}, {"supercategorie": "", "id": 26, "name": "turtle"}, {"supercategorie": "", "id": 27, "name": "watercraft"}, {"supercategorie": "", "id": 28, "name": "whale"}, {"supercategorie": "", "id": 29, "name": "zebra"}],
+            'categories': [{"supercategorie": "", "id": 0, "name": "airplane"},
+                           {"supercategorie": "", "id": 1, "name": "antelope"},
+                           {"supercategorie": "", "id": 2, "name": "bear"},
+                           {"supercategorie": "", "id": 3, "name": "bicycle"},
+                           {"supercategorie": "", "id": 4, "name": "bird"},
+                           {"supercategorie": "", "id": 5, "name": "bus"},
+                           {"supercategorie": "", "id": 6, "name": "car"},
+                           {"supercategorie": "", "id": 7, "name": "cattle"},
+                           {"supercategorie": "", "id": 8, "name": "dog"},
+                           {"supercategorie": "", "id": 9, "name": "domestic_cat"},
+                           {"supercategorie": "", "id": 10, "name": "elephant"},
+                           {"supercategorie": "", "id": 11, "name": "fox"},
+                           {"supercategorie": "", "id": 12, "name": "giant_panda"},
+                           {"supercategorie": "", "id": 13, "name": "hamster"},
+                           {"supercategorie": "", "id": 14, "name": "horse"},
+                           {"supercategorie": "", "id": 15, "name": "lion"},
+                           {"supercategorie": "", "id": 16, "name": "lizard"},
+                           {"supercategorie": "", "id": 17, "name": "monkey"},
+                           {"supercategorie": "", "id": 18, "name": "motorcycle"},
+                           {"supercategorie": "", "id": 19, "name": "rabbit"},
+                           {"supercategorie": "", "id": 20, "name": "red_panda"},
+                           {"supercategorie": "", "id": 21, "name": "sheep"},
+                           {"supercategorie": "", "id": 22, "name": "snake"},
+                           {"supercategorie": "", "id": 23, "name": "squirrel"},
+                           {"supercategorie": "", "id": 24, "name": "tiger"},
+                           {"supercategorie": "", "id": 25, "name": "train"},
+                           {"supercategorie": "", "id": 26, "name": "turtle"},
+                           {"supercategorie": "", "id": 27, "name": "watercraft"},
+                           {"supercategorie": "", "id": 28, "name": "whale"},
+                           {"supercategorie": "", "id": 29, "name": "zebra"}],
             'images': [],
             'licenses': []
         }
@@ -79,7 +114,36 @@ class VIDEvaluator:
                 'description': 'nothing',
             },
             'annotations': [],
-            'categories': [{"supercategorie": "", "id": 0, "name": "airplane"}, {"supercategorie": "", "id": 1, "name": "antelope"}, {"supercategorie": "", "id": 2, "name": "bear"}, {"supercategorie": "", "id": 3, "name": "bicycle"}, {"supercategorie": "", "id": 4, "name": "bird"}, {"supercategorie": "", "id": 5, "name": "bus"}, {"supercategorie": "", "id": 6, "name": "car"}, {"supercategorie": "", "id": 7, "name": "cattle"}, {"supercategorie": "", "id": 8, "name": "dog"}, {"supercategorie": "", "id": 9, "name": "domestic_cat"}, {"supercategorie": "", "id": 10, "name": "elephant"}, {"supercategorie": "", "id": 11, "name": "fox"}, {"supercategorie": "", "id": 12, "name": "giant_panda"}, {"supercategorie": "", "id": 13, "name": "hamster"}, {"supercategorie": "", "id": 14, "name": "horse"}, {"supercategorie": "", "id": 15, "name": "lion"}, {"supercategorie": "", "id": 16, "name": "lizard"}, {"supercategorie": "", "id": 17, "name": "monkey"}, {"supercategorie": "", "id": 18, "name": "motorcycle"}, {"supercategorie": "", "id": 19, "name": "rabbit"}, {"supercategorie": "", "id": 20, "name": "red_panda"}, {"supercategorie": "", "id": 21, "name": "sheep"}, {"supercategorie": "", "id": 22, "name": "snake"}, {"supercategorie": "", "id": 23, "name": "squirrel"}, {"supercategorie": "", "id": 24, "name": "tiger"}, {"supercategorie": "", "id": 25, "name": "train"}, {"supercategorie": "", "id": 26, "name": "turtle"}, {"supercategorie": "", "id": 27, "name": "watercraft"}, {"supercategorie": "", "id": 28, "name": "whale"}, {"supercategorie": "", "id": 29, "name": "zebra"}],
+            'categories': [{"supercategorie": "", "id": 0, "name": "airplane"},
+                           {"supercategorie": "", "id": 1, "name": "antelope"},
+                           {"supercategorie": "", "id": 2, "name": "bear"},
+                           {"supercategorie": "", "id": 3, "name": "bicycle"},
+                           {"supercategorie": "", "id": 4, "name": "bird"},
+                           {"supercategorie": "", "id": 5, "name": "bus"},
+                           {"supercategorie": "", "id": 6, "name": "car"},
+                           {"supercategorie": "", "id": 7, "name": "cattle"},
+                           {"supercategorie": "", "id": 8, "name": "dog"},
+                           {"supercategorie": "", "id": 9, "name": "domestic_cat"},
+                           {"supercategorie": "", "id": 10, "name": "elephant"},
+                           {"supercategorie": "", "id": 11, "name": "fox"},
+                           {"supercategorie": "", "id": 12, "name": "giant_panda"},
+                           {"supercategorie": "", "id": 13, "name": "hamster"},
+                           {"supercategorie": "", "id": 14, "name": "horse"},
+                           {"supercategorie": "", "id": 15, "name": "lion"},
+                           {"supercategorie": "", "id": 16, "name": "lizard"},
+                           {"supercategorie": "", "id": 17, "name": "monkey"},
+                           {"supercategorie": "", "id": 18, "name": "motorcycle"},
+                           {"supercategorie": "", "id": 19, "name": "rabbit"},
+                           {"supercategorie": "", "id": 20, "name": "red_panda"},
+                           {"supercategorie": "", "id": 21, "name": "sheep"},
+                           {"supercategorie": "", "id": 22, "name": "snake"},
+                           {"supercategorie": "", "id": 23, "name": "squirrel"},
+                           {"supercategorie": "", "id": 24, "name": "tiger"},
+                           {"supercategorie": "", "id": 25, "name": "train"},
+                           {"supercategorie": "", "id": 26, "name": "turtle"},
+                           {"supercategorie": "", "id": 27, "name": "watercraft"},
+                           {"supercategorie": "", "id": 28, "name": "whale"},
+                           {"supercategorie": "", "id": 29, "name": "zebra"}],
             'images': [],
             'licenses': []
         }
@@ -88,15 +152,16 @@ class VIDEvaluator:
         self.tmp_name_refined = './refined_pred.json'
         self.gt_ori = './gt_ori.json'
         self.gt_refined = './gt_refined.json'
+
     def evaluate(
-        self,
-        model,
-        distributed=False,
-        half=True,
-        trt_file=None,
-        decoder=None,
-        test_size=None,
-        img_path=None
+            self,
+            model,
+            distributed=False,
+            half=True,
+            trt_file=None,
+            decoder=None,
+            test_size=None,
+            img_path=None
     ):
         """
         COCO average precision (AP) Evaluation. Iterate inference on the test dataset
@@ -129,8 +194,8 @@ class VIDEvaluator:
         nms_time = 0
         n_samples = max(len(self.dataloader) - 1, 1)
 
-        for cur_iter, (imgs, _, info_imgs,label,path,time_embedding) in enumerate(
-            progress_bar(self.dataloader)
+        for cur_iter, (imgs, _, info_imgs, label, path, time_embedding) in enumerate(
+                progress_bar(self.dataloader)
         ):
 
             with torch.no_grad():
@@ -139,16 +204,21 @@ class VIDEvaluator:
                 is_time_record = cur_iter < len(self.dataloader) - 1
                 if is_time_record:
                     start = time.time()
-                outputs,ori_res = model(imgs)
+                outputs, ori_res = model(imgs,
+                                         lframe=self.lframe,
+                                         gframe = self.gframe)
 
                 if is_time_record:
                     infer_end = time_synchronized()
                     inference_time += infer_end - start
             if self.gl_mode:
-                local_num = int(imgs.shape[0]/2)
+                local_num = int(imgs.shape[0] / 2)
                 info_imgs = info_imgs[:local_num]
                 label = label[:local_num]
-            temp_data_list,temp_label_list = self.convert_to_coco_format(outputs, info_imgs, copy.deepcopy(label))
+            if self.kwargs.get('first_only',False):
+                info_imgs = [info_imgs[0]]
+                label = [label[0]]
+            temp_data_list, temp_label_list = self.convert_to_coco_format(outputs, info_imgs, copy.deepcopy(label))
             data_list.extend(temp_data_list)
             labels_list.extend(temp_label_list)
 
@@ -167,19 +237,19 @@ class VIDEvaluator:
         synchronize()
         return eval_results
 
-    def convert_to_coco_format(self, outputs, info_imgs,labels):
+    def convert_to_coco_format(self, outputs, info_imgs, labels):
         data_list = []
         label_list = []
         frame_now = 0
 
-        for (output, info_img,_label) in zip(
-            outputs, info_imgs,labels
+        for (output, info_img, _label) in zip(
+                outputs, info_imgs, labels
         ):
-            #if frame_now>=self.lframe: break
+            # if frame_now>=self.lframe: break
             scale = min(
                 self.img_size[0] / float(info_img[0]), self.img_size[1] / float(info_img[1])
             )
-            bboxes_label = _label[:,1:]
+            bboxes_label = _label[:, 1:]
             bboxes_label /= scale
             bboxes_label = xyxy2xywh(bboxes_label)
             cls_label = _label[:, 0]
@@ -189,13 +259,13 @@ class VIDEvaluator:
                     "category_id": int(cls_label[ind]),
                     "bbox": bboxes_label[ind].numpy().tolist(),
                     "segmentation": [],
-                    'id':self.box_id,
+                    'id': self.box_id,
                     "iscrowd": 0,
-                    'area':int(bboxes_label[ind][2]*bboxes_label[ind][3])
+                    'area': int(bboxes_label[ind][2] * bboxes_label[ind][3])
                 }  # COCO json format
-                self.box_id = self.box_id+1
+                self.box_id = self.box_id + 1
                 label_list.append(label_pred_data)
-            self.vid_to_coco['images'].append({'id':self.id})
+            self.vid_to_coco['images'].append({'id': self.id})
 
             if output is None:
                 self.id = self.id + 1
@@ -206,7 +276,6 @@ class VIDEvaluator:
             # preprocessing: resize
             bboxes /= scale
             bboxes = xyxy2xywh(bboxes)
-
 
             cls = output[:, 6]
             scores = output[:, 4] * output[:, 5]
@@ -221,28 +290,27 @@ class VIDEvaluator:
                     "segmentation": [],
                 }  # COCO json format
                 data_list.append(pred_data)
-            self.id = self.id+1
-            frame_now = frame_now+1
+            self.id = self.id + 1
+            frame_now = frame_now + 1
 
-        return data_list,label_list
+        return data_list, label_list
 
-    def convert_to_coco_format_ori(self, outputs, info_imgs,labels):
+    def convert_to_coco_format_ori(self, outputs, info_imgs, labels):
 
         data_list = []
         label_list = []
         frame_now = 0
-        for (output, info_img,_label) in zip(
-            outputs, info_imgs,labels
+        for (output, info_img, _label) in zip(
+                outputs, info_imgs, labels
         ):
             scale = min(
                 self.img_size[0] / float(info_img[0]), self.img_size[1] / float(info_img[1])
             )
-            bboxes_label = _label[:,1:]
+            bboxes_label = _label[:, 1:]
             bboxes_label /= scale
             bboxes_label = xyxy2xywh(bboxes_label)
             cls_label = _label[:, 0]
             for ind in range(bboxes_label.shape[0]):
-
                 label_pred_data = {
                     "image_id": int(self.id_ori),
                     "category_id": int(cls_label[ind]),
@@ -255,7 +323,7 @@ class VIDEvaluator:
                 self.box_id_ori = self.box_id_ori + 1
                 label_list.append(label_pred_data)
 
-                #print('label:',label_pred_data)
+                # print('label:',label_pred_data)
 
             self.vid_to_coco_ori['images'].append({'id': self.id_ori})
 
@@ -270,10 +338,9 @@ class VIDEvaluator:
             bboxes /= scale
             bboxes = xyxy2xywh(bboxes)
 
-
             cls = output[:, 6]
             scores = output[:, 4] * output[:, 5]
-            #print(cls.shape)
+            # print(cls.shape)
             for ind in range(bboxes.shape[0]):
                 label = int(cls[ind])
                 pred_data = {
@@ -285,10 +352,9 @@ class VIDEvaluator:
                 }  # COCO json format
                 data_list.append(pred_data)
 
-
             self.id_ori = self.id_ori + 1
             frame_now = frame_now + 1
-        return data_list,label_list
+        return data_list, label_list
 
     def evaluate_prediction(self, data_dict, statistics, ori=False):
         if not is_main_process():
@@ -308,9 +374,9 @@ class VIDEvaluator:
             [
                 "Average {} time: {:.2f} ms".format(k, v)
                 for k, v in zip(
-                    ["forward", "NMS", "inference"],
-                    [a_infer_time, a_nms_time, (a_infer_time + a_nms_time)],
-                )
+                ["forward", "NMS", "inference"],
+                [a_infer_time, a_nms_time, (a_infer_time + a_nms_time)],
+            )
             ]
         )
 

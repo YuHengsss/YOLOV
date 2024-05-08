@@ -13,7 +13,7 @@ class Exp(MyExp):
         # Define yourself dataset path
 
         self.num_classes = 30
-        self.data_dir = "path to your root dir"
+        self.data_dir = '/mnt/weka/scratch/yuheng.shi/dataset/VID' #'/mnt/weka/scratch/datasets/coco' #
 
         self.train_ann = "vid_train_coco.json"
         self.val_ann = "vid_val10000_coco.json"
@@ -27,4 +27,6 @@ class Exp(MyExp):
         self.test_size = (576,576)
         self.test_conf = 0.001
         self.nmsthre = 0.5
+        self.train_name = ''
+        self.val_name = ''
         #COCO API has been changed

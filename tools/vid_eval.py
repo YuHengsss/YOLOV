@@ -98,10 +98,12 @@ def make_parser():
         nargs=argparse.REMAINDER,
     )
 
-    parser.add_argument('--lframe', default=0, help='local frame num')
-    parser.add_argument('--gframe', default=32, help='global frame num')
+    parser.add_argument('--lframe', default=0,type=int, help='local frame num')
+    parser.add_argument('--gframe', default=32,type=int, help='global frame num')
     parser.add_argument('--mode', default='random', help='frame sample mode')
     parser.add_argument('--tnum', default=-1, help='vid test sequences')
+    parser.add_argument('--formal', default=False, action="store_true",help='vid test sequences')
+
     return parser
 
 
@@ -126,9 +128,9 @@ def main(exp, args):
 
     dataset_val = vid.VIDDataset(file_path='./yolox/data/datasets/val_seq.npy',
                                  img_size=(args.tsize, args.tsize), preproc=Vid_Val_Transform(), lframe=lframe,
-                                 gframe=gframe, val=True,mode=args.mode,dataset_pth=exp.data_dir,tnum=int(args.tnum))
-    val_loader = vid.get_vid_loader(batch_size=lframe + gframe, data_num_workers=4, dataset=dataset_val,)
-
+                                 gframe=gframe, val=True,mode=args.mode,dataset_pth=exp.data_dir,tnum=int(args.tnum),
+                                 formal=args.formal,local_stride=exp.local_stride,)
+    val_loader = vid.vid_val_loader(batch_size=lframe + gframe, data_num_workers=4, dataset=dataset_val,)
     trainer = Trainer(exp, args,val_loader,val=True)
 
 
@@ -137,6 +139,10 @@ if __name__ == "__main__":
 
     exp = get_exp(args.exp_file, args.name)
     exp.test_size = (args.tsize, args.tsize)
+
+
+    if args.lframe != None: exp.lframe_val = int(args.lframe)
+    if args.gframe != None: exp.gframe_val = int(args.gframe)
     exp.merge(args.opts)
     if not args.experiment_name:
         args.experiment_name = exp.exp_name

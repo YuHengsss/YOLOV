@@ -13,10 +13,13 @@ class Exp(MyExp):
         # Define yourself dataset path
 
         self.num_classes = 30
-        self.data_dir = "path to your root dir"
+        self.data_dir ="/mnt/weka/scratch/yuheng.shi/dataset/VID"
 
         self.train_ann = "vid_train_coco.json"
-        self.val_ann = "vid_val10000_coco.json"
+        #self.val_ann = "vid_val10000_coco.json"
+        self.val_ann = "vid_val10000_coco_fg.json"
+        self.train_name = ''
+        self.val_name = ''
         self.max_epoch = 7
         self.no_aug_epochs = 1
         self.warmup_epochs = 0
@@ -28,3 +31,18 @@ class Exp(MyExp):
         self.test_conf = 0.001
         self.nmsthre = 0.5
         #COCO API has been changed
+
+    def get_evaluator(self, batch_size, is_distributed, testdev=False, legacy=False):
+        from yolox.evaluators import COCOEvaluator
+
+        val_loader = self.get_eval_loader(batch_size, is_distributed, testdev, legacy)
+        evaluator = COCOEvaluator(
+            dataloader=val_loader,
+            img_size=self.test_size,
+            confthre=self.test_conf,
+            nmsthre=self.nmsthre,
+            num_classes=self.num_classes,
+            testdev=testdev,
+            fg_AR_only=True,
+        )
+        return evaluator

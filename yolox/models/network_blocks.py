@@ -211,3 +211,30 @@ class Focus(nn.Module):
             dim=1,
         )
         return self.conv(x)
+
+class ResNetBottleneck(nn.Module):
+    # Bottleneck in torchvision places the stride for downsampling at 3x3 convolution(self.ConvBn2)
+    # while original implementation places the stride at the first 1x1 convolution(self.ConvBn1)
+    expansion: int = 4
+
+    def __init__(self, inplanes,  planes, stride = 1, downsample=None,groups=1,base_width=64,act='relu'):
+        super().__init__()
+        width = int(planes * (base_width / 64.0)) * groups
+        self.ConvBn1 = BaseConv(inplanes,width,1,1,groups,act=act)
+        self.ConvBn2 = BaseConv(width,width,3,stride,groups,act=act)
+        self.ConvBn3 = BaseConv(width, planes*self.expansion, 1, 1, groups, act=act)
+        self.downsample = downsample
+        self.act = get_activation(act, inplace=True)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x
+        out = self.ConvBn1(x)
+        out = self.ConvBn2(out)
+        out = self.ConvBn3(out)
+
+        if self.downsample is not None:
+            identity = self.downsample(x)
+
+        out = out + identity
+
+        return self.act(out)

@@ -1,27 +1,51 @@
 
 
-# YOLOV for video object detection.
+# YOLOV and YOLOV++ for video object detection.
 ## Update
 * **` April. 21th, 2024`**:  Our enhanced model now achieves a 92.9 AP50(w.o post-processing) on the ImageNet VID dataset, thanks to a more robust backbone and algorithm improvements. It maintains a processing time of 26.5ms per image during batch inference on a 3090 GPU. Code release is forthcoming.
-  
+
+* **` May. 8th, 2024`**:  We release code, log and weights for YOLOV++.
+
 ## Introduction
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/yolov-making-still-image-object-detectors/video-object-detection-on-imagenet-vid)](https://paperswithcode.com/sota/video-object-detection-on-imagenet-vid?p=yolov-making-still-image-object-detectors)
 
-YOLOV is a high performance video object detector.  Please refer to our [paper](https://arxiv.org/abs/2208.09686) on Arxiv for more details.
+YOLOV series are high performance video object detector.  Please refer to [YOLOV](https://arxiv.org/abs/2208.09686) on Arxiv for more details. Paper for YOLOV++ will be released soon. 
 
-This repo is an implementation of PyTorch version YOLOV based on [YOLOX](https://github.com/Megvii-BaseDetection/YOLOX).
+This repo is an implementation of PyTorch version YOLOV and YOLOV++ based on [YOLOX](https://github.com/Megvii-BaseDetection/YOLOX).
+
+## YOLOX Pretain Models on ImageNet VID
+
+| Model            | size | mAP@50<sup>val<br> | Speed 2080Ti(batch size=1)<br>(ms) | Speed 3090(batch size=32)<br>(ms) |                                           weights                                            |
+|------------------|:----:|:------------------:|:----------------------------------:|:---------------------------------:|:--------------------------------------------------------------------------------------------:|
+| YOLOX-s          | 576  |        69.5        |                9.4                 |                1.4                |[google](https://drive.google.com/file/d/1n8wkByqpHdrGy6z9fsoZpBtTa0I3JOcG/view?usp=sharing) |
+| YOLOX-l          | 576  |        76.1        |                14.8                |                4.2                |[google](https://drive.google.com/file/d/1rikaPCAHBBIugYUZYV1buyOIRG8xvGKB/view?usp=sharing) |
+| YOLOX-x          | 576  |        77.8        |                20.4                |                 -                 |[google](https://drive.google.com/file/d/1OH3hGj7RMfcinMKPESbfI7C5y_RrA3aF/view?usp=sharing) |
+| YOLOX-SwinTiny   | 576  |        79.2        |                19.0                |                5.5                |                                            -                                               |
+| YOLOX-SwinBase   | 576  |        86.5        |                24.9                |               11.8                |                                           -                                               |
+| YOLOX-FocalLarge | 576  |        89.7        |                42.2                |               25.7                |                                          -                                               |
+
+
+
+## Main result in YOLOV++
+
+<img src="assets/v++_comparision.png" width="500" >
+
+| Model                     | size | mAP@50<sup>val<br> | Speed 3090(batch size=32)<br>(ms) | weights | logs |
+|---------------------------|:----:|:------------------:|:---------------------------------:|:-------:|------|
+| YOLOV++ s                 | 576  |        78.7        |                5.3                |    -    | |
+| YOLOV++ l                 | 576  |        84.2        |                7.6                |    -    | |
+| YOLOV++ SwinTiny          | 576  |        85.6        |                8.4                |    -    | |
+| YOLOV++ SwinBase          | 576  |        90.7        |               15.9                |    -    | |
+| YOLOV++ FocalLarge        | 576  |        92.9        |               27.6                |    -    | |
+| YOLOV++ FocalLarge + Post | 576  |        93.2        |                 -                 |    -    | |
+
+
+## Main result in YOLOV
 
 <img src="assets/comparsion.jpg" width="500" >
 
-
-## Main result
-
-
 | Model                                                                                                               | size | mAP@50<sup>val<br> | Speed 2080Ti(batch size=1)<br>(ms) |                                           weights                                            |
 |---------------------------------------------------------------------------------------------------------------------|:----:|:------------------:|:----------------------------------:|:--------------------------------------------------------------------------------------------:|
-| YOLOX-s                                                                                                             | 576  |        69.5        |                9.4                 |                                         [google](https://drive.google.com/file/d/1n8wkByqpHdrGy6z9fsoZpBtTa0I3JOcG/view?usp=sharing)                                          |
-| YOLOX-l                                                                                                             | 576  |        76.1        |                14.8                |                                         [google](https://drive.google.com/file/d/1rikaPCAHBBIugYUZYV1buyOIRG8xvGKB/view?usp=sharing)                                          |
-| YOLOX-x                                                                                                             | 576  |        77.8        |                20.4                |                                         [google](https://drive.google.com/file/d/1OH3hGj7RMfcinMKPESbfI7C5y_RrA3aF/view?usp=sharing)                                          |
 | YOLOV-s                                                                                                             | 576  |        77.3        |                11.3                | [google](https://drive.google.com/file/d/12X4dQw45aXVYgJjKAAAPk409FO3xValW/view?usp=sharing) |
 | YOLOV-l                                                                                                             | 576  |        83.6        |                16.4                | [google](https://drive.google.com/file/d/1qZ-3iPDlYx1OKe6zz_-n42ceijo_Ntx6/view?usp=sharing) |
 | YOLOV-x                                                                                                             | 576  |        85.5        |                22.7                | [google](https://drive.google.com/file/d/1OIozS-D9wbWA9pDFl5xoFw6XqEcYtzsJ/view?usp=sharing) |
@@ -120,7 +144,7 @@ tnum indicates testing sequence number.
 </details>
 
 
-## Annotation format in YOLOV
+## Annotation format
 
 <details>
   
@@ -131,7 +155,7 @@ tnum indicates testing sequence number.
 
 The train_coco.json is a COCO format annotation file. When trainig the base detector on your own dataset, try to convert the annotation to COCO format.
 
-**Training YOLOV**
+**Training YOLOV Series**
 
 
 The train_seq.npy and val_seq.npy files are numpy arrays of lists. They can be loaded using the following command:
@@ -150,8 +174,8 @@ Each list contains the paths to all images in a video. The specific annotations(
 * [https://github.com/AlbertoSabater/Robust-and-efficient-post-processing-for-video-object-detection](https://github.com/AlbertoSabater/Robust-and-efficient-post-processing-for-video-object-detection)
 </details>
 
-## Cite YOLOV
-If YOLOV is helpful for your research, please cite the following paper:
+## Cite YOLOV and YOLOV++
+If YOLOV series are helpful for your research, please cite the following paper:
 
 ```latex
 @article{shi2022yolov,

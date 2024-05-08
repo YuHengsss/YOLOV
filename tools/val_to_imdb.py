@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding:utf-8 -*-
-# Copyright (c) Megvii, Inc. and its affiliates.
+
 
 import argparse
 import os
@@ -15,7 +15,9 @@ from yolox.data.data_augment import ValTransform
 from yolox.data.datasets import COCO_CLASSES
 from yolox.data.datasets.vid_classes import VID_classes
 from yolox.exp import get_exp
-from yolox.utils import fuse_model, get_model_info, postprocess, vis
+from yolox.utils import fuse_model, get_model_info, vis
+from yolox.models.post_process import postprocess,get_linking_mat,post_linking
+import copy
 import random
 import numpy as np
 import pickle
@@ -23,7 +25,7 @@ IMAGE_EXT = [".jpg", ".jpeg", ".webp", ".bmp", ".png"]
 
 
 def make_parser():
-    parser = argparse.ArgumentParser("YOLOX Demo!")
+    parser = argparse.ArgumentParser("YOLOV Testing")
 
     parser.add_argument("-expn", "--experiment-name", type=str, default=None)
     parser.add_argument("-n", "--name", type=str, default=None, help="model name")
@@ -38,11 +40,11 @@ def make_parser():
     parser.add_argument(
         "-f",
         "--exp_file",
-        default='./exps/test_dir/yolov_s.py',
+        default='./exps/yolov/yolov_s.py',
         type=str,
         help="pls input your expriment description file",
     )
-    parser.add_argument("-c", "--ckpt", default='./weights/yolov_s.pth', type=str, help="ckpt for eval")
+    parser.add_argument("-c", "--ckpt", default='./excluded/weights/yolov_s.pth', type=str, help="ckpt for eval")
     parser.add_argument(
         "--device",
         default="gpu",
@@ -86,11 +88,11 @@ def make_parser():
         action="store_true",
         help="Using TensorRT model for testing.",
     )
-    parser.add_argument('--output_dir', default='./YOLOX_outputs/yolov_s.pckl',
+    parser.add_argument('--output_dir', default='./YOLOX_outputs/yolov_s.pkl',
                         help='path where to save, empty for no saving')
     parser.add_argument('--data_dir', default='', help= 'path to your dataset')
-    parser.add_argument('--lframe', default=0, help='local frame num')
-    parser.add_argument('--gframe', default=32, help='global frame num')
+    parser.add_argument('--lframe', default=0,type=int, help='local frame num')
+    parser.add_argument('--gframe', default=32,type=int, help='global frame num')
     return parser
 
 
@@ -115,6 +117,7 @@ class Predictor(object):
         decoder=None,
         device="cpu",
         legacy=False,
+        post = None
     ):
         self.model = model
         self.cls_names = cls_names
@@ -127,7 +130,12 @@ class Predictor(object):
         self.preproc = ValTransform(legacy=legacy)
         self.model.half()
         self.tensor_type = torch.cuda.HalfTensor
-    def inference(self, img,img_path=None):
+        if hasattr(exp,'traj_linking'):
+            self.traj_linking = exp.traj_linking
+        else:
+            self.traj_linking = False
+        self.post = post
+    def inference(self, img,img_path=None,lframe=0,gframe=32):
 
         if self.device == "gpu":
             img = img.type(self.tensor_type)
@@ -135,9 +143,12 @@ class Predictor(object):
 
         with torch.no_grad():
             t0 = time.time()
-            outputs,outputs_ori = self.model(img)
-        if len(outputs)<=4: outputs = outputs_ori
-
+            if not self.traj_linking:
+                outputs,outputs_ori = self.model(img,lframe=lframe,gframe=gframe)
+                if len(outputs) <= 4: outputs = outputs_ori
+            else:
+                pred_result, adj_list, fc_output = self.model(img,lframe=lframe,gframe=gframe)
+                outputs = [pred_result, adj_list, fc_output]
         return outputs
 
     def to_repp(self, output,ratio, img_size,image_id):
@@ -193,6 +204,42 @@ class Predictor(object):
             pred['scores'] = out[4:7]#*out[4]
             pred_res.append(pred)
         return pred_res
+
+    def visual(self, output, img, ratio, cls_conf=0.0):
+
+        if output is None:
+            return img
+        bboxes = output[:, 0:4]
+
+        # preprocessing: resize
+        bboxes /= ratio
+
+        cls = output[:, 6]
+        scores = output[:, 4] * output[:, 5]
+
+        vis_res = vis(img, bboxes, scores, cls, cls_conf, self.cls_names)
+        return vis_res
+
+    def convert_to_post(self,pred_res,ratio,img_size):
+        res_dic = {}
+        for idx, ele in enumerate(pred_res):
+            res_dic[str(idx)] = self.to_repp_heavy(ele,ratio,img_size,str(idx))
+        return res_dic
+    def convert_to_ori(self,post_res,frame_num):
+        tmp_list = []
+        res_list = []
+        for i in range(frame_num):
+            tmp_list.append([])
+        for ele in post_res:
+            x1,y1,x2,y2 = ele['bbox'][0],ele['bbox'][1],ele['bbox'][0]+ele['bbox'][2],ele['bbox'][1]+ele['bbox'][3]
+            tmp_list[int(ele['image_id'])].append(torch.Tensor([x1,y1,x2,y2,1,ele['score'],ele['category_id']]))
+        for ele in tmp_list:
+            if ele == []:
+                res_list.append(None)
+            else:
+                res_list.append(torch.stack(ele))
+        return res_list
+
 
 
 def gl_mode(predictor, val_path, args):
@@ -274,65 +321,77 @@ def gl_mode(predictor, val_path, args):
         pickle.dump((res[0], res[1]), file_writter)
     file_writter.close()
 
-def imageflow_demo(predictor, val_path, args):
-    lframe = args.lframe
-    gframe = args.gframe
-    res = []
-    dataset = np.load(val_path, allow_pickle=True).tolist()
-    for element in dataset:
-        res_video = []
-        ele_len = len(element)
-        if ele_len <= lframe + gframe:
-            # TODO fix the unsolved part
-            res_video.append(element)
-        else:
-            if lframe == 0:
-                split_num = int(ele_len / (gframe))
-                random.shuffle(element)
-                for i in range(split_num):
-                    res_video.append(element[i * gframe:(i + 1) * gframe])
-                res_video.append(element[(i + 1) * gframe:])
+
+
+def imageflow_demo(predictor, val_path, args,exp):
+
+    lframe = exp.lframe_val
+    gframe = exp.gframe_val
+    Cls = exp.num_classes
+    traj_linking = hasattr(exp, 'traj_linking') and exp.traj_linking
+    print(lframe,gframe)
+    eval_loader = exp.get_eval_loader(batch_size=gframe+lframe,tnum=-1,data_num_workers=12,formal=True,)
+    from tqdm import tqdm
+
+    res_dict = {}
+    def add_res_dict(result,names,last_vid_name,info_imgs):
+        #print('add {} frames to {}'.format(len(result),last_vid_name))
+        for i in range(len(result)):
+            img_name, pred = names[i], result[i]
+            point_idx = img_name.rfind('.')
+            image_id = img_name[img_name.find('val'):point_idx]
+            img_idx = img_name[img_name.rfind('/') + 1:point_idx]
+            if img_idx in res_dict[last_vid_name]: continue
+            ratio = min(predictor.test_size[0] / info_imgs[0][0], predictor.test_size[1] / info_imgs[0][1])
+            det_repp = predictor.to_repp_heavy(pred, ratio, [info_imgs[0][0], info_imgs[0][1]], image_id)
+            res_dict[last_vid_name][img_idx] = det_repp
+
+    pred_results, adj_lists, fc_outputs, names = [], [], [], []
+    for cur_iter, (imgs, _, info_imgs, label, path, time_embedding) in enumerate(
+            tqdm(eval_loader)
+    ):
+        video_name = path[0][path[0].find('val'):path[0].rfind('/')]
+        # if video_name not in res_dict and traj_linking and len(pred_results): #Post process
+        #     result = post_linking(fc_outputs, adj_lists, pred_results, P, Cls, names, exp)
+        #     last_vid_name = names[0][names[0].find('val'):names[0].rfind('/')]
+        #     add_res_dict(result,names,last_vid_name,last_info_imgs)
+        #     pred_results, adj_lists, fc_outputs,names = [], [], [],[]
+
+        if exp.lmode:
+            if traj_linking:
+                pred_result, adj_list, fc_output = predictor.inference(imgs,lframe=len(path),gframe=0)
+                if len(pred_results) != 0: #skip the connection frame
+                    pred_result = pred_result[1:]
+                    fc_output = fc_output[1:]
+                    path = path[1:]
+                else:
+                    res_dict[video_name] = {}
+                pred_results.extend(pred_result)
+                adj_lists.extend(adj_list)
+                fc_outputs.append(fc_output)
+                names.extend(path)
+                last_info_imgs = info_imgs
+                continue
             else:
-                return None# TODO add local mode
-        res.append(res_video)
+                pred_res = predictor.inference(imgs,lframe=len(path),gframe=0)
+        elif exp.gmode:
+            pred_res = predictor.inference(imgs, lframe=0, gframe=len(path))
 
-    repp_res = []
+        video_name = path[0][path[0].find('val'):path[0].rfind('/')]
+        if video_name not in res_dict: res_dict[video_name] = {}
+        add_res_dict(pred_res,path,video_name,info_imgs)
+
+    # if traj_linking:
+    #     result = post_linking(fc_outputs, adj_lists, pred_results, P, Cls, names, exp)
+    #     last_vid_name = names[0][names[0].find('val'):names[0].rfind('/')]
+    #     add_res_dict(result,names,last_vid_name,last_info_imgs)
+
     file_writter = open(args.output_dir, 'wb')
-    import tqdm
-    progress_bar = tqdm
-    cur_iter = 0
-    for ele in res:
-        cur_iter +=1
-        if cur_iter%10==0:
-            print(str(cur_iter)+'/'+str(len(res)))
-        #videos
-        first_frame = ele[0][0]
-        video_name = first_frame[first_frame.find('val'):first_frame.rfind('/')]
-
-        preds_video = {}
-        for frames in ele:
-            #frames
-            if frames == []: continue
-            tmp_imgs = []
-            for img in frames:
-                img = cv2.imread(os.path.join(exp.data_dir,img))
-                height, width = img.shape[:2]
-                ratio = min(predictor.test_size[0] / img.shape[0],predictor.test_size[1] / img.shape[1])
-                img, _ = predictor.preproc(img, None, predictor.test_size)
-                img = torch.from_numpy(img)
-                tmp_imgs.append(img)
-            imgs = torch.stack(tmp_imgs)
-            pred_res = predictor.inference(imgs)
-            for pred,img_name in zip(pred_res,frames):
-                point_idx = img_name.rfind('.')
-                image_id = img_name[img_name.find('val'):point_idx]
-                img_idx = img_name[img_name.rfind('/')+1:point_idx]
-                det_repp = predictor.to_repp_heavy(pred,ratio,[height,width],image_id)
-                preds_video[img_idx] = det_repp
-        repp_res.append([video_name, preds_video])
-    for res in repp_res:
-        pickle.dump((res[0], res[1]), file_writter)
+    for key,val in res_dict.items():
+        pickle.dump((key, val), file_writter)
     file_writter.close()
+    print('save result to {}'.format(args.output_dir))
+
 
 def main(exp, args):
     if not args.experiment_name:
@@ -394,12 +453,15 @@ def main(exp, args):
         predictor = Predictor(model, exp, VID_classes, trt_file, decoder, args.device, args.legacy)
 
     current_time = time.localtime()
-    imageflow_demo(predictor, val_path, args)
+    imageflow_demo(predictor, val_path, args,exp)
 
 
 if __name__ == "__main__":
     args = make_parser().parse_args()
     exp = get_exp(args.exp_file, args.name)
+    #exp.traj_linking = True and exp.lmode
+    exp.lframe_val = int(args.lframe)
+    exp.gframe_val = int(args.gframe)
 
     main(exp, args)
 

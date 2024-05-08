@@ -36,7 +36,8 @@ class REPP():
 
         self.min_tubelet_score = min_tubelet_score  # threshold to filter out low-scoring tubelets
         self.min_pred_score = min_pred_score  # threshold to filter out low-scoring base predictions
-        self.add_unmatched = post  # True to add unlinked detections to the final set of detections. Leads to a lower mAP
+        self.add_unmatched = add_unmatched  # True to add unlinked detections to the final set of detections. Leads to a lower mAP
+        self.post = post
         print(post,'*******************')
         self.distance_func = distance_func  # LogReg to use the learning-based linking model. 'def' to use the baseline from SBM
         self.clf_thr = clf_thr  # threshold to filter out detection linkings
@@ -78,6 +79,9 @@ class REPP():
     # Computes de linking score between a pair of detections
     def distance_logreg(self, p1, p2):
         pair_features = get_pair_features(p1, p2, self.matching_feats)  # , image_size[0], image_size[1]
+        #TODO: get the iou version of yolov_local
+        #score = pair_features['iou']
+        #if score < 0.5: return INF
         score = self.clf_match.predict_proba(np.array([[pair_features[col] for col in self.matching_feats]]))[:, 1]
         if score < self.clf_thr: return INF
 
@@ -122,7 +126,7 @@ class REPP():
                 pairs_i = self.solve_distances_def(distances, maximization_problem=False)
 
             unmatched_pairs_i = [i for i in range(num_preds_1) if i not in [p[0] for p in pairs_i]]
-            pairs.append(pairs_i);
+            pairs.append(pairs_i)
             unmatched_pairs.append(unmatched_pairs_i)
 
         return pairs, unmatched_pairs
@@ -225,6 +229,7 @@ class REPP():
 
     # Performs the re-scoring refinment
     def rescore_tubelets(self, tubelets):
+        #return tubelets
         for t_num in range(len(tubelets)):
             t_scores = [p['scores'] for _, p in tubelets[t_num]]
             new_scores = np.mean(t_scores, axis=0)
@@ -304,7 +309,7 @@ class REPP():
 
             video_predictions[frame] = tmp#[p for p in video_predictions[frame] ]
 
-        if self.add_unmatched:
+        if self.post:
             pairs, unmatched_pairs = self.get_video_pairs(video_predictions)
         else:
             pairs, unmatched_pairs = self.get_pred(video_predictions)
@@ -362,7 +367,7 @@ if __name__ == '__main__':
     repp_params = json.load(open(args.repp_cfg, 'r'))
     print(repp_params)
 
-    predictions_file_out = args.predictions_file.replace('.pckl', '_repp')
+    predictions_file_out = args.predictions_file.replace('.pkl', '_repp')
 
     repp = REPP(**repp_params, annotations_filename=args.annotations_filename,
                 store_coco=args.store_coco, store_imdb=args.store_imdb or args.evaluate,post=args.post)
@@ -377,6 +382,13 @@ if __name__ == '__main__':
     video_dic = []
     for vid, video_preds in get_video_frame_iterator(args.predictions_file, from_python_2=args.from_python_2):
         video_preds = dict(sorted(video_preds.items(), key=lambda x: x[0]))
+        # #split the video_preds into several sequences
+        # split_len = 16
+        # if len(video_preds) > split_len:
+        #     for i in range(0, len(video_preds), split_len):
+        #         video_dic.append(dict(list(video_preds.items())[i:i + split_len]))
+        # else:
+        #     video_dic.append(video_preds)
         video_dic.append(video_preds)
     res = process_map(repp, video_dic, max_workers=args.process_num)
     for ele in res:

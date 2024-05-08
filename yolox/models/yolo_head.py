@@ -13,7 +13,7 @@ from yolox.utils import bboxes_iou, meshgrid
 
 from .losses import IOUloss
 from .network_blocks import BaseConv, DWConv
-
+from yolox.models.post_process import postprocess_widx,find_features
 
 class YOLOXHead(nn.Module):
     def __init__(
@@ -24,6 +24,7 @@ class YOLOXHead(nn.Module):
         in_channels=[256, 512, 1024],
         act="silu",
         depthwise=False,
+        debug = False
     ):
         """
         Args:
@@ -35,6 +36,7 @@ class YOLOXHead(nn.Module):
         self.n_anchors = 1
         self.num_classes = num_classes
         self.decode_in_inference = True  # for deploy, set to False
+        self.debug = debug
 
         self.cls_convs = nn.ModuleList()
         self.reg_convs = nn.ModuleList()
@@ -146,7 +148,7 @@ class YOLOXHead(nn.Module):
         x_shifts = []
         y_shifts = []
         expanded_strides = []
-
+        cls_feautres, reg_features = [], []
         for k, (cls_conv, reg_conv, stride_this_level, x) in enumerate(
             zip(self.cls_convs, self.reg_convs, self.strides, xin)
         ):
@@ -188,7 +190,8 @@ class YOLOXHead(nn.Module):
                 output = torch.cat(
                     [reg_output, obj_output.sigmoid(), cls_output.sigmoid()], 1
                 )
-
+                cls_feautres.append(cls_feat)
+                reg_features.append(reg_feat)
             outputs.append(output)
 
         if self.training:
@@ -208,6 +211,17 @@ class YOLOXHead(nn.Module):
             outputs = torch.cat(
                 [x.flatten(start_dim=2) for x in outputs], dim=2
             ).permute(0, 2, 1)
+            if self.debug:
+                decode_res = self.decode_outputs(outputs, dtype=xin[0].type())
+                res_post,res_idx = postprocess_widx(decode_res)
+                cls_feautres = torch.cat(
+                    [x.flatten(start_dim=2) for x in cls_feautres], dim=2
+                ).permute(0, 2, 1)
+                reg_features = torch.cat(
+                    [x.flatten(start_dim=2) for x in reg_features], dim=2
+                ).permute(0, 2, 1)
+                features_cls,features_reg = find_features(cls_feautres,reg_features,res_idx)
+                return res_post,features_cls,features_reg
             if self.decode_in_inference:
                 return self.decode_outputs(outputs, dtype=xin[0].type())
             else:

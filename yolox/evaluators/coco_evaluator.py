@@ -17,6 +17,7 @@ import numpy as np
 import torch
 
 from yolox.data.datasets import COCO_CLASSES
+from yolox.models.post_process import postpro_woclass,post_threhold
 from yolox.utils import (
     gather,
     is_main_process,
@@ -91,6 +92,7 @@ class COCOEvaluator:
         testdev: bool = False,
         per_class_AP: bool = False,
         per_class_AR: bool = False,
+        fg_AR_only: bool = False,
     ):
         """
         Args:
@@ -111,6 +113,7 @@ class COCOEvaluator:
         self.testdev = testdev
         self.per_class_AP = per_class_AP
         self.per_class_AR = per_class_AR
+        self.fg_AR_only = fg_AR_only
 
     def evaluate(
         self,
@@ -176,10 +179,14 @@ class COCOEvaluator:
                 if is_time_record:
                     infer_end = time_synchronized()
                     inference_time += infer_end - start
-
-                outputs = postprocess(
-                    outputs, self.num_classes, self.confthre, self.nmsthre
-                )
+                if not self.fg_AR_only:
+                    outputs = postprocess(
+                        outputs, self.num_classes, self.confthre, self.nmsthre
+                    )
+                else:
+                    outputs = post_threhold(
+                        outputs, self.num_classes,
+                    )
                 if is_time_record:
                     nms_end = time_synchronized()
                     nms_time += nms_end - infer_end
@@ -191,7 +198,9 @@ class COCOEvaluator:
             data_list = gather(data_list, dst=0)
             data_list = list(itertools.chain(*data_list))
             torch.distributed.reduce(statistics, dst=0)
-
+        #calculate average predictions per image
+        if is_main_process():
+            logger.info("average predictions per image: {:.2f}".format(len(data_list)/len(self.dataloader.dataset)))
         eval_results = self.evaluate_prediction(data_list, statistics)
         synchronize()
         return eval_results
@@ -218,6 +227,8 @@ class COCOEvaluator:
             scores = output[:, 4] * output[:, 5]
             for ind in range(bboxes.shape[0]):
                 label = self.dataloader.dataset.class_ids[int(cls[ind])]
+                if self.fg_AR_only: # for testing the forgound class AR
+                    label = 0
                 pred_data = {
                     "image_id": int(img_id),
                     "category_id": label,

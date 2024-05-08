@@ -188,7 +188,7 @@ class COCODataset(Dataset):
     def load_image(self, index):
 
         file_name = self.annotations[index][3]
-        img_file = os.path.join(self.data_dir,file_name)
+        img_file = os.path.join(self.data_dir,self.name,file_name)
         img = cv2.imread(img_file)
         assert img is not None
 

@@ -9,3 +9,5 @@ from .yolo_fpn import YOLOFPN
 from .yolo_head import YOLOXHead
 from .yolo_pafpn import YOLOPAFPN
 from .yolox import YOLOX
+from .yolo_pafpn import YOLOPAFPN,YOLOPAFPN_ResNet, YOLOPAFPN_Swin,YOLOPAFPN_focal
+from .resnet import ResNet

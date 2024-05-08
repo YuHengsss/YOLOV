@@ -8,5 +8,5 @@
 	"recoordinate_std": 0.4,
 	"min_pred_score":  1e-3,
 	"appearance_matching": false,
-	"weight_path": "./matching_model_logreg.pckl"
+	"weight_path": "./tools/matching_model_logreg.pckl"
 }

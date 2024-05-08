@@ -38,7 +38,10 @@ class VIDDataset(torchDataset):
         val = False,
         mode='random',
         dataset_pth = '',
-        tnum = 1000
+        tnum = 1000,
+        formal = False,
+        traj_linking = False,
+        local_stride = 1
     ):
         """
         COCO dataset initialization. Annotation data are read into memory by COCO API.
@@ -51,12 +54,15 @@ class VIDDataset(torchDataset):
         """
         super().__init__()
         self.tnum = tnum
+        self.traj_linking = traj_linking
         self.input_dim = img_size
         self.file_path = file_path
         self.mode = mode  # random, continous, uniform
         self.img_size = img_size
         self.preproc = preproc
         self.val = val
+        self.formal = formal
+        self.local_stride = local_stride
         self.res = self.photo_to_sequence(self.file_path,lframe,gframe)
         self.dataset_pth = dataset_pth
 
@@ -78,45 +84,65 @@ class VIDDataset(torchDataset):
             ele_len = len(element)
             if ele_len<lframe+gframe:
                 #TODO fix the unsolved part
-                #res.append(element)
-                continue
+                if self.formal:
+                    res.append(element)
+                else:
+                    continue
+                # res.append(element)
+                # continue
             else:
                 if self.mode == 'random':
-                    split_num = int(ele_len / (gframe))
-                    random.shuffle(element)
-                    for i in range(split_num):
-                        res.append(element[i * gframe:(i + 1) * gframe])
+                    if lframe == 0:
+                        split_num = int(ele_len / (gframe))
+                        random.shuffle(element)
+                        for i in range(split_num):
+                            res.append(element[i * gframe:(i + 1) * gframe])
+                        if self.formal and len(element[split_num * gframe:]):
+                            tail = element[split_num * gframe:]
+                            # padding = tail + element[:gframe-len(tail)]
+                            res.append(tail)
+                    elif lframe!=0:
+                        if self.local_stride==1:
+                            split_num = int(ele_len / (lframe))
+                            all_local_frame = element[:split_num * lframe]
+                            for i in range(split_num):
+                                if self.traj_linking and i!=0:
+                                    l_frame = all_local_frame[i * lframe-1:(i + 1) * lframe]
+                                else:
+                                    l_frame = all_local_frame[i * lframe:(i + 1) * lframe]
+                                g_frame = random.sample(element[:i * lframe] + element[(i + 1) * lframe:], gframe)
+                                res.append(l_frame + g_frame)
+                            if self.formal and len(element[split_num * lframe:]):
+                                if self.traj_linking:
+                                    tail = element[split_num * lframe-1:]
+                                else:
+                                    tail = element[split_num * lframe:]
+                                res.append(tail)
+                        else:
+                            split_num = ele_len//(lframe*self.local_stride)
+                            for i in range(split_num):
+                                for j in range(self.local_stride):
+                                    res.append(element[lframe * self.local_stride * i:lframe * self.local_stride * (i + 1)][
+                                                   j::self.local_stride])
+                    else:
+                        print('unsupport mode, exit')
+                        exit(0)
+
                 elif self.mode == 'uniform':
                     split_num = int(ele_len / (gframe))
                     all_uniform_frame = element[:split_num * gframe]
                     for i in range(split_num):
                         res.append(all_uniform_frame[i::split_num])
-                elif self.mode == 'gl':
-                    split_num = int(ele_len / (lframe))
-                    all_local_frame = element[:split_num * lframe]
-                    for i in range(split_num):
-                        g_frame = random.sample(element[:i * lframe] + element[(i + 1) * lframe:], gframe)
-                        res.append(all_local_frame[i * lframe:(i + 1) * lframe] + g_frame)
+
                 else:
                     print('unsupport mode, exit')
                     exit(0)
-        # test = []
-        # for ele in res:
-        #     test.extend(ele)
-        # random.shuffle(test)
-        # i = 0
-        # for ele in res:
-        #     for j in range(gframe):
-        #         ele[j] = test[i]
-        #         i += 1
 
         if self.val:
-            random.seed(42)
-            random.shuffle(res)
             if self.tnum == -1:
                 return res
             else:
-                return res[:self.tnum]#[1000:1250]#[2852:2865]
+                return res[:self.tnum]
         else:
             random.shuffle(res)
             return res[:15000]

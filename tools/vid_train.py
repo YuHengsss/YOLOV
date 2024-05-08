@@ -22,7 +22,7 @@ def make_parser():
     parser = argparse.ArgumentParser("YOLOX train parser")
     parser.add_argument("-expn", "--experiment-name", type=str, default=None)
     parser.add_argument("-n", "--name", type=str, default=None, help="model name")
-    parser.add_argument("--tsize", default=512, type=int, help="test img size")
+    parser.add_argument("--tsize", default=576, type=int, help="test img size")
     # distributed
     parser.add_argument(
         "--dist-backend", default="nccl", type=str, help="distributed backend"
@@ -90,9 +90,6 @@ def make_parser():
         default=None,
         nargs=argparse.REMAINDER,
     )
-    parser.add_argument('--lframe', default=0, help='local frame num')
-    parser.add_argument('--gframe', default=16, help='global frame num')
-
     return parser
 
 @logger.catch
@@ -111,12 +108,9 @@ def main(exp, args):
     configure_nccl()
     configure_omp()
     cudnn.benchmark = True
-    lframe = int(args.lframe)
-    gframe = int(args.gframe)
-    dataset_val = vid.VIDDataset(file_path='./yolox/data/datasets/val_seq.npy',
-                                 img_size=(args.tsize, args.tsize), preproc=Vid_Val_Transform(), lframe=lframe,
-                                 gframe=gframe, val=True,dataset_pth=exp.data_dir)
-    val_loader = vid.get_vid_loader(batch_size=lframe + gframe, data_num_workers=1, dataset=dataset_val, )
+    lframe = int(exp.lframe_val)
+    gframe = int(exp.gframe_val)
+    val_loader = exp.get_eval_loader(batch_size=lframe+gframe,data_num_workers=6)
     trainer = Trainer(exp, args,val_loader,val=False)
     trainer.train()
 

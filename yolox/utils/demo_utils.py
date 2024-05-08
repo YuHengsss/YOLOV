@@ -3,10 +3,12 @@
 # Copyright (c) Megvii Inc. All rights reserved.
 
 import os
-
+from PIL import Image
 import numpy as np
 
 __all__ = ["mkdir", "nms", "multiclass_nms", "demo_postprocess"]
+
+import torch
 
 
 def mkdir(path):
@@ -122,3 +124,13 @@ def demo_postprocess(outputs, img_size, p6=False):
     outputs[..., 2:4] = np.exp(outputs[..., 2:4]) * expanded_strides
 
     return outputs
+
+
+def crop_bbox_img(img, bboxes):
+    cropped_imgs = []
+    for i in range(len(bboxes)):
+        x1, y1, x2, y2 = bboxes[i]
+        x1,y1 = max(0,x1),max(0,y1)
+        x2,y2 = min(img.shape[1],x2),min(img.shape[0],y2)
+        cropped_imgs.append(Image.fromarray(img[int(y1):int(y2), int(x1):int(x2)]))
+    return cropped_imgs
