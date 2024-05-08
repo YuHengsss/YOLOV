@@ -15,14 +15,14 @@ This repo is an implementation of PyTorch version YOLOV and YOLOV++ based on [YO
 
 ## YOLOX Pretain Models on ImageNet VID
 
-| Model            | size | mAP@50<sup>val<br> | Speed 2080Ti(batch size=1)<br>(ms) | Speed 3090(batch size=32)<br>(ms) |                                           weights                                            |
-|------------------|:----:|:------------------:|:----------------------------------:|:---------------------------------:|:--------------------------------------------------------------------------------------------:|
-| YOLOX-s          | 576  |        69.5        |                9.4                 |                1.4                |[google](https://drive.google.com/file/d/1n8wkByqpHdrGy6z9fsoZpBtTa0I3JOcG/view?usp=sharing) |
-| YOLOX-l          | 576  |        76.1        |                14.8                |                4.2                |[google](https://drive.google.com/file/d/1rikaPCAHBBIugYUZYV1buyOIRG8xvGKB/view?usp=sharing) |
-| YOLOX-x          | 576  |        77.8        |                20.4                |                 -                 |[google](https://drive.google.com/file/d/1OH3hGj7RMfcinMKPESbfI7C5y_RrA3aF/view?usp=sharing) |
-| YOLOX-SwinTiny   | 576  |        79.2        |                19.0                |                5.5                |                                            -                                               |
-| YOLOX-SwinBase   | 576  |        86.5        |                24.9                |               11.8                |                                           -                                               |
-| YOLOX-FocalLarge | 576  |        89.7        |                42.2                |               25.7                |                                          -                                               |
+| Model            | size | mAP@50<sup>val<br> | Speed 2080Ti(batch size=1)<br>(ms) | Speed 3090(batch size=32)<br>(ms) |                                             weights                                              |
+|------------------|:----:|:------------------:|:----------------------------------:|:---------------------------------:|:------------------------------------------------------------------------------------------------:|
+| YOLOX-s          | 576  |        69.5        |                9.4                 |                1.4                |   [google](https://drive.google.com/file/d/1n8wkByqpHdrGy6z9fsoZpBtTa0I3JOcG/view?usp=sharing)   |
+| YOLOX-l          | 576  |        76.1        |                14.8                |                4.2                |   [google](https://drive.google.com/file/d/1rikaPCAHBBIugYUZYV1buyOIRG8xvGKB/view?usp=sharing)   |
+| YOLOX-x          | 576  |        77.8        |                20.4                |                 -                 |   [google](https://drive.google.com/file/d/1OH3hGj7RMfcinMKPESbfI7C5y_RrA3aF/view?usp=sharing)   |
+| YOLOX-SwinTiny   | 576  |        79.2        |                19.0                |                5.5                |[google](https://drive.google.com/file/d/1s1gKLXMX5Hwxkx7e9nZyzJ1oF9iPvEe1/view?usp=drive_link)   |
+| YOLOX-SwinBase   | 576  |        86.5        |                24.9                |               11.8                |                                                -                                                 |
+| YOLOX-FocalLarge | 576  |        89.7        |                42.2                |               25.7                |                                                -                                                 |
 
 
 
