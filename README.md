@@ -10,7 +10,7 @@
 
 ## Introduction
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/practical-video-object-detection-via-feature/video-object-detection-on-imagenet-vid)](https://paperswithcode.com/sota/video-object-detection-on-imagenet-vid?p=practical-video-object-detection-via-feature)
-
+[![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/yolov-making-still-image-object-detectors/video-object-detection-on-imagenet-vid)](https://paperswithcode.com/sota/video-object-detection-on-imagenet-vid?p=yolov-making-still-image-object-detectors)
 
 YOLOV series are high performance video object detector.  Please refer to [YOLOV](https://arxiv.org/abs/2208.09686) and [YOLOV++](https://arxiv.org/abs/2407.19650) on Arxiv for more details.
 
