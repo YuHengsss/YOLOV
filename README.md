@@ -181,7 +181,16 @@ Each list contains the paths to all images in a video. The specific annotations(
 ## Cite YOLOV and YOLOV++
 If YOLOV series are helpful for your research, please cite the following paper:
 
+
 ```latex
+
+@article{shi2024yolovpp,
+      title={Practical Video Object Detection via Feature Selection and Aggregation}, 
+      author={Yuheng Shi and Tong Zhang and Xiaojie Guo},
+      journal={arXiv preprint arXiv:2407.19650},
+      year={2024},
+}
+
 @article{shi2022yolov,
   title={YOLOV: Making Still Image Object Detectors Great at Video Object Detection},
   author={Shi, Yuheng and Wang, Naiyan and Guo, Xiaojie},
