@@ -182,25 +182,24 @@ Each list contains the paths to all images in a video. The specific annotations(
 2. Construct your dataset in the COCO format. Here is a template for the dataset structure (sourced from [OVIS](https://songbai.site/ovis/)):
     ```shell
     {
-        "info" : info,
-        "videos" : [video],
-        "annotations" : [annotation] or None,
-        "categories" : [category],
+    "info" : info,
+    "images" : [image],
+    "annotations" : [annotation] or None,
+    "categories" : [category],
     }
-    video{
-        "id" : int,
+    image{
+        "id" : "[video_id]_[frame_id]" (the video_id here is the video_id from the VIS annotations, and the frame_id is the frame_idx+1 of this video),
         "width" : int,
         "height" : int,
         "length" : int,
-        "file_names" : [file_name],
+        "file_name" : file_name,
     }
     annotation{
         "id" : int, 
-        "video_id" : int, 
+        "image_id" : int, 
         "category_id" : int, 
-        "segmentations" : None, 
-        "areas" : [float or None], 
-        "bboxes" : [[x,y,width,height] or None], 
+        "area" : float, 
+        "bbox" : [x,y,width,height], 
     }
     category{
         "id" : int, 
