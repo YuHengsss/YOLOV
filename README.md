@@ -183,23 +183,24 @@ Each list contains the paths to all images in a video. The specific annotations(
     ```shell
     {
     "info" : info,
-    "images" : [image],
+    "videos" : [video],
     "annotations" : [annotation] or None,
     "categories" : [category],
     }
-    image{
-        "id" : "[video_id]_[frame_id]" (the video_id here is the video_id from the VIS annotations, and the frame_id is the frame_idx+1 of this video),
+    video{
+        "id" : int,
         "width" : int,
         "height" : int,
         "length" : int,
-        "file_name" : file_name,
+        "file_names" : [file_name],
     }
     annotation{
         "id" : int, 
-        "image_id" : int, 
+        "video_id" : int, 
         "category_id" : int, 
-        "area" : float, 
-        "bbox" : [x,y,width,height], 
+        "areas" : [float or None], 
+        "bboxes" : [[x,y,width,height] or None], 
+        "iscrowd" : 0 or 1,
     }
     category{
         "id" : int, 
@@ -208,7 +209,7 @@ Each list contains the paths to all images in a video. The specific annotations(
     }
     ```
 
-    After preparing the COCO format dataset, you can construct your experiment file of YOLOV such as [YOLOVs_OVIS](https://github.com/YuHengsss/YOLOV/blob/master/exps/yolov_ovis/yolovs_ovis_75_75_750.py). For YOLOV++, you can combine the this [dataloader](https://github.com/YuHengsss/YOLOV/blob/8873e06cac9912c60c31ca2ef3061d0bfe5b2f36/exps/yolov_ovis/yolovs_ovis_75_75_750.py#L121) with the default [experiment file](https://github.com/YuHengsss/YOLOV/blob/master/exps/yolov%2B%2B/v%2B%2B_SwinTiny_decoupleReg.py) for training on the custom dataset.  We also provide [code](https://github.com/YuHengsss/YOLOV/blob/8873e06cac9912c60c31ca2ef3061d0bfe5b2f36/yolox/data/datasets/ovis.py#L238) which converts video instance segmentation datasets like [OVIS](https://codalab.lisn.upsaclay.fr/competitions/4763#participate) for video object detection.
+    After preparing the COCO format dataset, we provide [code](https://github.com/YuHengsss/YOLOV/blob/8873e06cac9912c60c31ca2ef3061d0bfe5b2f36/yolox/data/datasets/ovis.py#L238) which converts the COCO format annotation for video object detection. You can construct your experiment file of YOLOV such as [YOLOVs_OVIS](https://github.com/YuHengsss/YOLOV/blob/master/exps/yolov_ovis/yolovs_ovis_75_75_750.py). For YOLOV++, you can combine the this [dataloader](https://github.com/YuHengsss/YOLOV/blob/8873e06cac9912c60c31ca2ef3061d0bfe5b2f36/exps/yolov_ovis/yolovs_ovis_75_75_750.py#L121) with the default [experiment file](https://github.com/YuHengsss/YOLOV/blob/master/exps/yolov%2B%2B/v%2B%2B_SwinTiny_decoupleReg.py) for training on the custom dataset.  
 
 3. Initialize the YOLOV or YOLOV++ with finetuned weights obtained by Step 1. Note that you may adjust the hyperparameters such as [proposal numbers](https://github.com/YuHengsss/YOLOV/blob/8873e06cac9912c60c31ca2ef3061d0bfe5b2f36/exps/yolov_ovis/yolovs_ovis_75_75_750.py#L56) according to your dataset for getting better performance.
 
