@@ -170,6 +170,51 @@ Each list contains the paths to all images in a video. The specific annotations(
 
 </details>
 
+
+## Training on Custom Datasets
+
+<details>
+<summary> <b>Details</b> </summary>
+  
+1. Finetuing the base detector(YOLOX) on your custom dataset with COCO format annotation. You need to modify the YOLOX experiment file. For instance, the experiment file for the Imagenet VID dataset is modified as [this example](https://github.com/YuHengsss/YOLOV/blob/master/exps/swin_base/swin_tiny_vid.py). Initialized weights with COCO pretraining is essential for the performance, you can find these coco pretrained weights in YOLOX official repo (YOLOX-S~YOLOX-X) and this [huggingface repo](https://huggingface.co/YuhengSSS/YOLOV/tree/main) (YOLOX-SwinTiny and SwinBase).
+
+
+2. Construct your dataset in the COCO format. Here is a template for the dataset structure (sourced from [OVIS](https://songbai.site/ovis/)):
+    ```shell
+    {
+        "info" : info,
+        "videos" : [video],
+        "annotations" : [annotation] or None,
+        "categories" : [category],
+    }
+    video{
+        "id" : int,
+        "width" : int,
+        "height" : int,
+        "length" : int,
+        "file_names" : [file_name],
+    }
+    annotation{
+        "id" : int, 
+        "video_id" : int, 
+        "category_id" : int, 
+        "segmentations" : None, 
+        "areas" : [float or None], 
+        "bboxes" : [[x,y,width,height] or None], 
+    }
+    category{
+        "id" : int, 
+        "name" : str, 
+        "supercategory" : str,
+    }
+    ```
+
+    After preparing the COCO format dataset, we provide [code](https://github.com/YuHengsss/YOLOV/blob/8873e06cac9912c60c31ca2ef3061d0bfe5b2f36/yolox/data/datasets/ovis.py#L238) to convert it for training YOLOV. And you can construct your experiment file of YOLOV such as [YOLOVs_OVIS](https://github.com/YuHengsss/YOLOV/blob/master/exps/yolov_ovis/yolovs_ovis_75_75_750.py). For YOLOV++, you can combine the this [dataloader](https://github.com/YuHengsss/YOLOV/blob/8873e06cac9912c60c31ca2ef3061d0bfe5b2f36/exps/yolov_ovis/yolovs_ovis_75_75_750.py#L121) with the default [experiment file](https://github.com/YuHengsss/YOLOV/blob/master/exps/yolov%2B%2B/v%2B%2B_SwinTiny_decoupleReg.py) for training on the custom dataset.
+
+3. Initialize the YOLOV or YOLOV++ with finetuned weights obtained by the Step 1. Note that you may adjust the hyperparameters such as [proposal numbers](https://github.com/YuHengsss/YOLOV/blob/8873e06cac9912c60c31ca2ef3061d0bfe5b2f36/exps/yolov_ovis/yolovs_ovis_75_75_750.py#L56) according to your own dataset for getting better performance.
+
+</details>
+
 ## Acknowledgements
 
 <details><summary> <b>Expand</b> </summary>
