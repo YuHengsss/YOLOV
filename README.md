@@ -3,10 +3,9 @@
 # YOLOV and YOLOV++ for video object detection.
 ## Update
 * **` July. 30th, 2024`**:  The pre-print version of the YOLOV++ paper is now available on [Arxiv](https://arxiv.org/abs/2407.19650).
-
+* **` May. 8th, 2024`**:  We release code, log and weights for YOLOV++.
 * **` April. 21th, 2024`**:  Our enhanced model now achieves a 92.9 AP50(w.o post-processing) on the ImageNet VID dataset, thanks to a more robust backbone and algorithm improvements. It maintains a processing time of 26.5ms per image during batch inference on a 3090 GPU. Code release is forthcoming.
 
-* **` May. 8th, 2024`**:  We release code, log and weights for YOLOV++.
 
 ## Introduction
 [![PWC](https://img.shields.io/endpoint.svg?url=https://paperswithcode.com/badge/practical-video-object-detection-via-feature/video-object-detection-on-imagenet-vid)](https://paperswithcode.com/sota/video-object-detection-on-imagenet-vid?p=practical-video-object-detection-via-feature)
