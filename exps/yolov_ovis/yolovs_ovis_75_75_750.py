@@ -153,11 +153,8 @@ class Exp(MyExp):
                                preproc=Vid_Val_Transform()
                                )
 
-        val_loader = vid.vid_val_loader(
-            batch_size=batch_size,
-            data_num_workers=data_num_workers,
-            dataset=dataset_val
-        )
+        val_loader = vid.get_trans_loader(batch_size=batch_size, data_num_workers=data_num_workers, dataset=dataset_val)
+
         return val_loader
 
     def get_evaluator(self, val_loader):
