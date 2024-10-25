@@ -142,6 +142,24 @@ class Exp(MyExp):
     def eval(self, model, evaluator, is_distributed, half=False):
         return evaluator.evaluate(model, is_distributed, half)
 
+    def get_eval_loader(self, batch_size,  tnum=None, data_num_workers=8, formal=False):
+
+        dataset_val = vid.OVIS(data_dir=self.data_dir,
+                               img_size=self.test_size, mode='random',
+                               COCO_anno=os.path.join(self.data_dir, self.val_ann),
+                               name='val',
+                               lframe=0,
+                               gframe=batch_size,
+                               preproc=Vid_Val_Transform()
+                               )
+
+        val_loader = vid.vid_val_loader(
+            batch_size=batch_size,
+            data_num_workers=data_num_workers,
+            dataset=dataset_val
+        )
+        return val_loader
+
     def get_evaluator(self, val_loader):
         from yolox.evaluators.vid_evaluator_v2 import VIDEvaluator
 

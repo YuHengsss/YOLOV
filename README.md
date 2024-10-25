@@ -208,10 +208,17 @@ Each list contains the paths to all images in a video. The specific annotations(
     }
     ```
 
-    After preparing the COCO format dataset, we provide [code](https://github.com/YuHengsss/YOLOV/blob/8873e06cac9912c60c31ca2ef3061d0bfe5b2f36/yolox/data/datasets/ovis.py#L238) which converts the COCO format annotation for video object detection. You can construct your experiment file of YOLOV such as [YOLOVs_OVIS](https://github.com/YuHengsss/YOLOV/blob/master/exps/yolov_ovis/yolovs_ovis_75_75_750.py). For YOLOV++, you can combine the this [dataloader](https://github.com/YuHengsss/YOLOV/blob/8873e06cac9912c60c31ca2ef3061d0bfe5b2f36/exps/yolov_ovis/yolovs_ovis_75_75_750.py#L121) with the default [experiment file](https://github.com/YuHengsss/YOLOV/blob/master/exps/yolov%2B%2B/v%2B%2B_SwinTiny_decoupleReg.py) for training on the custom dataset.  
+    After preparing the COCO format dataset, we provide [code](https://github.com/YuHengsss/YOLOV/blob/8873e06cac9912c60c31ca2ef3061d0bfe5b2f36/yolox/data/datasets/ovis.py#L238) which converts the COCO format annotation for video object detection.
+    You can construct your experiment file for YOLOV such as [YOLOVs_OVIS](https://github.com/YuHengsss/YOLOV/blob/master/exps/yolov_ovis/yolovs_ovis_75_75_750.py). 
+    For YOLOV++, please refer example in *exps/customed_example/v++_SwinTiny_example.py*, please config the OVIS in the *get_data_loader* and *get_eval_loader* according to your own dataset. 
+    Remember to change the category information in the [evaluator](https://github.com/YuHengsss/YOLOV/blob/98ade28ce975291023be947b7d5d57b05f9600ba/yolox/evaluators/vid_evaluator_v2.py#L41).
 
-3. Initialize the YOLOV or YOLOV++ with finetuned weights obtained by Step 1. Note that you may adjust the hyperparameters such as [proposal numbers](https://github.com/YuHengsss/YOLOV/blob/8873e06cac9912c60c31ca2ef3061d0bfe5b2f36/exps/yolov_ovis/yolovs_ovis_75_75_750.py#L56) according to your dataset for getting better performance.
-
+3. Initialize the YOLOV or YOLOV++ with finetuned weights obtained by Step 1. You may adjust the hyperparameters such as [proposal numbers](https://github.com/YuHengsss/YOLOV/blob/8873e06cac9912c60c31ca2ef3061d0bfe5b2f36/exps/yolov_ovis/yolovs_ovis_75_75_750.py#L56) according to your dataset for getting better performance:
+    
+     ```shell
+     python tools/vid_train.py -f exps/customed_example/v++_SwinTiny_example.py -c [path to your weights] --fp16
+     ```
+     Note that the batch size when training video detector is determined by the lframe and gframe, refer to this [line](https://github.com/YuHengsss/YOLOV/blob/98ade28ce975291023be947b7d5d57b05f9600ba/exps/yolov/yolov_base.py#L320). You can adjust the batch size according to your GPU memory. However, a very small batch size (<4) may lead to poor performance.
 </details>
 
 ## Acknowledgements

@@ -131,7 +131,16 @@ def main(exp, args):
                                  gframe=gframe, val=True,mode=args.mode,dataset_pth=exp.data_dir,tnum=int(args.tnum),
                                  formal=args.formal,local_stride=exp.local_stride,)
     val_loader = vid.vid_val_loader(batch_size=lframe + gframe, data_num_workers=4, dataset=dataset_val,)
-    trainer = Trainer(exp, args,val_loader,val=True)
+
+
+    ##  customed dataset here:
+    # dataset_val = vid.OVIS(data_dir='/opt/dataset/OVIS', img_size=exp.test_size, mode='random',
+    #                        COCO_anno='/opt/dataset/OVIS/ovis_train.json', name='train',
+    #                        lframe=0, gframe=gframe, preproc=Vid_Val_Transform()
+    #                        )
+    # val_loader = vid.vid_val_loader(batch_size=lframe + gframe, data_num_workers=4, dataset=dataset_val, )
+
+    trainer = Trainer(exp, args, val_loader, val=True)
 
 
 if __name__ == "__main__":
