@@ -19,7 +19,7 @@ class Exp(MyExp):
         self.train_ann = "ovis_train.json" #set your train annotation file
         self.val_ann = "ovis_train.json" #set your val annotation file
 
-        self.num_classes = 30 #config you classese number here
+        self.num_classes = 30 #config you classes number here
         self.warmup_epochs = 0
         self.no_aug_epochs = 2
         self.pre_no_aug = 2
