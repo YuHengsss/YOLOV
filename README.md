@@ -175,7 +175,11 @@ Each list contains the paths to all images in a video. The specific annotations(
 <details>
 <summary> <b>Details</b> </summary>
   
-1. Finetuing the base detector(YOLOX) on your custom dataset with COCO format annotation. You need to modify the YOLOX experiment file. For instance, the experiment file for the Imagenet VID dataset is modified as [this example](https://github.com/YuHengsss/YOLOV/blob/master/exps/swin_base/swin_tiny_vid.py). Initialized weights with COCO pretraining is essential for the performance, you can find these coco pretrained weights in YOLOX official repo (YOLOX-S~YOLOX-X) and this [huggingface repo](https://huggingface.co/YuhengSSS/YOLOV/tree/main) (YOLOX-SwinTiny and SwinBase).
+1. Finetuing the base detector(YOLOX) on your custom dataset with COCO format annotation. You need to modify the YOLOX experiment file. For instance, the experiment file for the Imagenet VID dataset is modified as [this example](https://github.com/YuHengsss/YOLOV/blob/master/exps/swin_base/swin_tiny_vid.py). Initialized weights with COCO pretraining is essential for the performance, you can find these coco pretrained weights in YOLOX official repo (YOLOX-S~YOLOX-X) and this [huggingface repo](https://huggingface.co/YuhengSSS/YOLOV/tree/main) (YOLOX-SwinTiny and SwinBase). Take the Swin-Tiny on ImagenetVID dataset as an example, you may run the finetuning script as:
+
+   ```shell
+     python tools/train.py -f exps/swin_base/swin_tiny_vid.py -c [yolox_swintiny pretrained weights on COCO] -b [batch size] -d [your devices] --fp16
+   ```
 
 
 2. Construct your dataset in the COCO format. Here is a template for the dataset structure (sourced from [OVIS](https://songbai.site/ovis/)):
