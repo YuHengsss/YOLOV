@@ -2,6 +2,7 @@
 
 # YOLOV and YOLOV++ for video object detection.
 ## Update
+* **Feb 5, 2026**: The IJCV version of YOLOV++ could be downloaded via https://rdcu.be/e1rhb.
 * **Sep 2, 2025**: YOLOV++ is accepted by IJCV.  
 * **Jul 30, 2024**: The preprint version of the YOLOV++ paper is now available on [arXiv](https://arxiv.org/abs/2407.19650).  
 * **May 8, 2024**: We release code, logs, and weights for YOLOV++.  
